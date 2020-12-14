@@ -5,6 +5,9 @@ inputs:
     description: The FHIR version to use
   ig:
     description: An IG or profile definition to load
+  recurse:
+    description: Look in subfolders when -ig refers to a folder
+    default: "true"
   tx:
     description: The [base] url of a FHIR terminology server
   profile:
@@ -28,6 +31,7 @@ runs:
     - run: |
         echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
         echo "::set-output name=opt_ig::$(if [ ! -z ${{inputs.ig}} ]; then echo -ig ${{ inputs.ig }};fi)"
+        echo "::set-output name=opt_recurse::$(if [ ! -z ${{inputs.recurse}} ]; then echo -ig ${{ inputs.recurse }};fi)"
         echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)"
         echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)"
         echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -language ${{ inputs.language }};fi)"
@@ -35,7 +39,7 @@ runs:
       shell: bash
     - run: |
         echo "::group::Run the validator"
-        java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
+        java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
         echo "::endgroup::"
       shell: bash
     - run: python3 ${{ github.action_path }}/analyze_results.py validation.xml ${{ inputs.allow-level }}
