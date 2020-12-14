@@ -45,4 +45,4 @@ cd $GITHUB_WORKSPACE
 java -jar /tools/validator.jar -version 4.0 $ig $recurse $tx $profile $language -output $result $source
 echo "::endgroup::"
 
-python3 /tools/analyze_results.py $output_dir/example_validation.xml $allow_level
+python3 /tools/analyze_results.py $result $allow_level
