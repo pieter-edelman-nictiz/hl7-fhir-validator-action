@@ -1,0 +1,35 @@
+name: HL7 Validator
+description: Run the HL7 Java validator and analyze the results.
+inputs:
+  version:
+    description: The FHIR version to use
+  ig:
+    description: An IG or profile definition to load
+  tx:
+    description: The [base] url of a FHIR terminology server
+  profile:
+    desciption: the canonical URL to validate against
+  language:
+    description: The language to use when validating coding displays - same value as for xml:lang
+  source:
+    description: a file, url, directory or pattern for resources to validate
+    required: true
+  allow-level:
+    description: The level from which issues are considered not fatal (0 = error, 1 warning, 2 = information)
+    default: 1
+runs:
+  using: composite
+  steps:
+    - run:  wget -nv https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+      shell: bash
+    - run: |
+        echo "::set-output name=opt_version::$(echo -version {{ input.version }})"
+        echo "::set-output name=opt_ig::$(echo -ig {{ input.ig }})"
+        echo "::set-output name=opt_tx::$(echo -version {{ input.tx }})"
+        echo "::set-output name=opt_profile::$(echo -version {{ input.profile }})"
+        echo "::set-output name=opt_language::$(echo -version {{ input.language }})"
+        echo "::set-output name=opt_source::$(echo -version {{ input.source }})"
+    - run: java -jar validator_cli.jar ${{ opt_version }} ${{ opt_ig }} ${{ opt_tx }} ${{ opt_profile }} ${{ opt_language }} -output validation.xml ${{ opt_source }} | cat
+      shell: bash
+    - run: python3 analyze_results.py validation.xml ${{ allow-level }}
+      shell: bash
