@@ -1,19 +1,21 @@
 name: HL7 Validator
 description: Run the HL7 Java validator and analyze the results.
 inputs:
-  version:
-    description: The FHIR version to use
   ig:
     description: An IG or profile definition to load
+    default: "none"
   recurse:
     description: Look in subfolders when -ig refers to a folder
     default: "true"
   tx:
     description: The [base] url of a FHIR terminology server
+    default: "none"
   profile:
     desciption: the canonical URL to validate against
+    default: "none"
   language:
     description: The language to use when validating coding displays - same value as for xml:lang
+    default: "none"
   source:
     description: a file, url, directory or pattern for resources to validate
     required: true
@@ -21,26 +23,13 @@ inputs:
     description: The level from which issues are considered not fatal (0 = error, 1 warning, 2 = information)
     default: 1
 runs:
-  using: composite
-  steps:
-    - run: |
-        echo "::group::Echo getting the validator"
-        wget -nv https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
-        echo "::endgroup::"
-      shell: bash
-    - run: |
-        echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
-        echo "::set-output name=opt_ig::$(if [ ! -z ${{inputs.ig}} ]; then echo -ig ${{ inputs.ig }};fi)"
-        echo "::set-output name=opt_recurse::$(if [ ! -z ${{inputs.recurse}} ]; then echo -ig ${{ inputs.recurse }};fi)"
-        echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)"
-        echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)"
-        echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -language ${{ inputs.language }};fi)"
-      id: set_options
-      shell: bash
-    - run: |
-        echo "::group::Run the validator"
-        java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
-        echo "::endgroup::"
-      shell: bash
-    - run: python3 ${{ github.action_path }}/analyze_results.py validation.xml ${{ inputs.allow-level }}
-      shell: bash
+  using: docker
+  image: Dockerfile
+  args:
+    - i ${{ inputs.ig }}
+    - r ${{ inputs.recurse }}
+    - t ${{ inputs.tx }}
+    - p ${{ inputs.profile }}
+    - l ${{ inputs.language }}
+    - a ${{ inputs.allow-level }}
+    - ${{ inputs.source }}
