@@ -19,7 +19,7 @@ while getopts ${optstring} arg; do
       ig=$(setParameter "ig" ${OPTARG})
       ;;
     r)
-      if [ ${OPTARG} == "true"]; then
+      if [ ${OPTARG} == "true" ]; then
         recurse="-recurse"
       fi
       ;;
