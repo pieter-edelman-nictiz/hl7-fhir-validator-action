@@ -39,6 +39,7 @@ shift $((OPTIND-1))
 source=$@
 
 echo "::group::Run the validator"
+cd $GITHUB_WORKSPACE
 java -jar /tools/validator.jar -version 4.0 $ig $recurse $tx $profile $language -output $result $source
 echo "::endgroup::"
 
