@@ -30,9 +30,7 @@ runs:
         echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -version ${{ inputs.language }};fi)"
       id: set_options
       shell: bash
-    - run: echo ${{ steps.set_options.outputs.opt_version }}
+    - run: java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
       shell: bash
-    # - run: java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
-    #   shell: bash
-    # - run: python3 analyze_results.py validation.xml ${{ inputs.allow-level }}
-    #   shell: bash
+    - run: python3 analyze_results.py validation.xml ${{ inputs.allow-level }}
+      shell: bash
