@@ -23,15 +23,15 @@ runs:
     - run:  wget -nv https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
       shell: bash
     - run: |
-        echo "::set-output name=opt_version::$(echo -version ${{ inputs.version }})"
-        echo "::set-output name=opt_ig::$(echo -ig ${{ inputs.ig }})"
-        echo "::set-output name=opt_tx::$(echo -version ${{ inputs.tx }})"
-        echo "::set-output name=opt_profile::$(echo -version ${{ inputs.profile }})"
-        echo "::set-output name=opt_language::$(echo -version ${{ inputs.language }})"
-        echo "::set-output name=opt_source::$(echo -version ${{ inputs.source }})"
+        echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
+        echo "::set-output name=opt_ig::$(if [ ! -z ${{inputs.ig}} ]; then echo -version ${{ inputs.ig }};fi)"
+        echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -version ${{ inputs.tx }};fi)"
+        echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -version ${{ inputs.profile }};fi)"
+        echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -version ${{ inputs.language }};fi)"
       id: set_options
       shell: bash
-    - run: java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ steps.set_options.outputs.opt_source }} | cat
-      shell: bash
-    - run: python3 analyze_results.py validation.xml ${{ inputs.allow-level }}
-      shell: bash
+    - run: echo ${{ opt_version }}
+    # - run: java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
+    #   shell: bash
+    # - run: python3 analyze_results.py validation.xml ${{ inputs.allow-level }}
+    #   shell: bash
