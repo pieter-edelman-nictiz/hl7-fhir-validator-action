@@ -12,4 +12,4 @@ COPY analyze_results.py /tools/analyze_results.py
 
 RUN mkdir /output
 COPY entrypoint.sh /entrypoint.sh
-CMD ["./entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
