@@ -29,6 +29,7 @@ runs:
         echo "::set-output name=opt_profile::$(echo -version {{ input.profile }})"
         echo "::set-output name=opt_language::$(echo -version {{ input.language }})"
         echo "::set-output name=opt_source::$(echo -version {{ input.source }})"
+      shell: bash
     - run: java -jar validator_cli.jar ${{ opt_version }} ${{ opt_ig }} ${{ opt_tx }} ${{ opt_profile }} ${{ opt_language }} -output validation.xml ${{ opt_source }} | cat
       shell: bash
     - run: python3 analyze_results.py validation.xml ${{ allow-level }}
