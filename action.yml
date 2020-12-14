@@ -23,14 +23,22 @@ runs:
     - run:  wget -nv https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
       shell: bash
     - run: |
-        echo "::set-output name=opt_version::$(echo -version {{ input.version }})"
-        echo "::set-output name=opt_ig::$(echo -ig {{ input.ig }})"
-        echo "::set-output name=opt_tx::$(echo -version {{ input.tx }})"
-        echo "::set-output name=opt_profile::$(echo -version {{ input.profile }})"
-        echo "::set-output name=opt_language::$(echo -version {{ input.language }})"
-        echo "::set-output name=opt_source::$(echo -version {{ input.source }})"
+        echo "::set-output name=opt_version::$(echo -version {{ inputs.version }})"
+        echo "::set-output name=opt_ig::$(echo -ig {{ inputs.ig }})"
+        echo "::set-output name=opt_tx::$(echo -version {{ inputs.tx }})"
+        echo "::set-output name=opt_profile::$(echo -version {{ inputs.profile }})"
+        echo "::set-output name=opt_language::$(echo -version {{ inputs.language }})"
+        echo "::set-output name=opt_source::$(echo -version {{ inputs.source }})"
+      id: set_options
       shell: bash
-    - run: java -jar validator_cli.jar ${{ opt_version }} ${{ opt_ig }} ${{ opt_tx }} ${{ opt_profile }} ${{ opt_language }} -output validation.xml ${{ opt_source }} | cat
+    - run: |
+        java -jar validator_cli.jar 
+          ${{ steps.set_options.outputs.opt_version }}
+          ${{ steps.set_options.outputs.opt_ig }}
+          ${{ steps.set_options.outputs.opt_tx }}
+          ${{ steps.set_options.outputs.opt_profile }}
+          ${{ steps.set_options.outputs.opt_language }}
+          -output validation.xml ${{ opt_source }} | cat
       shell: bash
-    - run: python3 analyze_results.py validation.xml ${{ allow-level }}
+    - run: python3 analyze_results.py validation.xml ${{ inputs.allow-level }}
       shell: bash
