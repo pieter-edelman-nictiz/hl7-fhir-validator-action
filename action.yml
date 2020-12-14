@@ -38,7 +38,7 @@ runs:
           ${{ steps.set_options.outputs.opt_tx }}
           ${{ steps.set_options.outputs.opt_profile }}
           ${{ steps.set_options.outputs.opt_language }}
-          -output validation.xml ${{ opt_source }} | cat
+          -output validation.xml ${{ steps.set_options.outputs.opt_source }} | cat
       shell: bash
     - run: python3 analyze_results.py validation.xml ${{ inputs.allow-level }}
       shell: bash
