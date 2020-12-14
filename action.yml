@@ -26,10 +26,10 @@ runs:
   using: docker
   image: Dockerfile
   args:
-    - i ${{ inputs.ig }}
-    - r ${{ inputs.recurse }}
-    - t ${{ inputs.tx }}
-    - p ${{ inputs.profile }}
-    - l ${{ inputs.language }}
-    - a ${{ inputs.allow-level }}
+    - -i ${{ inputs.ig }}
+    - -r ${{ inputs.recurse }}
+    - -t ${{ inputs.tx }}
+    - -p ${{ inputs.profile }}
+    - -l ${{ inputs.language }}
+    - -a ${{ inputs.allow-level }}
     - ${{ inputs.source }}
