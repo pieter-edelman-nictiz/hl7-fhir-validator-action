@@ -31,7 +31,7 @@ runs:
     - run: |
         echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
         echo "::set-output name=opt_ig::$(if [ ! -z ${{inputs.ig}} ]; then echo -ig ${{ inputs.ig }};fi)"
-        echo "::set-output name=opt_recurse::$(if [ ! -z ${{inputs.recurse}} ]; then echo -ig ${{ inputs.recurse }};fi)"
+        echo "::set-output name=opt_recurse::$(if [ ! -z ${{inputs.recurse}} ]; then echo -recurse;fi)"
         echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)"
         echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)"
         echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -language ${{ inputs.language }};fi)"
