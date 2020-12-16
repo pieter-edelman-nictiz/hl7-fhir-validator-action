@@ -2,6 +2,7 @@
 
 import sys
 import xml.etree.ElementTree as ET
+from optparse import OptionParser
 
 levels = {
     "error": 0,
@@ -26,17 +27,14 @@ class Result:
         })
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(f"Usage {sys.argv[0]} validator_output.xml [allow_level]")
-        print("Where allow_level is a number from 0-2 to indicate at which level errors are still allowed (0=error, 1=warning, 2=information)")
-        sys.exit(1)
+    parser = OptionParser("usage: %prog [options] validator_result.xml")
+    parser.add_option("-l", "--allow-level", type = "int", default = 1,
+        help="The level from which issues are considered not fatal (0 = error, 1 = warning, 2 = information). If issues below the specified level occur, this script will exit with a non-zero status.")
+    (options, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.error("Exactly one argument expected")
 
-    if len(sys.argv) == 3:
-        allow_level = int(sys.argv[2])
-    else:
-        allow_level = 1
-
-    tree = ET.parse(sys.argv[1])
+    tree = ET.parse(args[0])
     ns = {"f": "http://hl7.org/fhir"}
 
     results = []
@@ -61,7 +59,7 @@ if __name__ == "__main__":
         if len(result.issues) > 0:
             print(f"== {result.file_path}")
             for issue in result.issues:
-                if levels[issue["severity"]] < allow_level:
+                if levels[issue["severity"]] < options["allow-level"]:
                     success = False
                 print(f"  -  {issue['severity']} ({issue['line']}, {issue['col']}):")
                 print(f"     {issue['text']}")
