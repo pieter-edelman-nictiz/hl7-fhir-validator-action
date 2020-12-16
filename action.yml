@@ -18,8 +18,11 @@ inputs:
     description: a file, url, directory or pattern for resources to validate
     required: true
   allow-level:
-    description: The level from which issues are considered not fatal (0 = error, 1 = warning, 2 = information)
+    description: The level from which issues are considered not fatal (0 = error, 1 = warning, 2 = information). If issues below the specified level occur, this action will fail.
     default: 1
+  verbosity-level:
+    description: Only show issues at this level or lower (0 = error, 1 = warning, 2 = information).
+    default: 2
 runs:
   using: composite
   steps:
@@ -42,5 +45,5 @@ runs:
         java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
         echo "::endgroup::"
       shell: bash
-    - run: python3 ${{ github.action_path }}/analyze_results.py -l ${{ inputs.allow-level }} validation.xml
+    - run: python3 ${{ github.action_path }}/analyze_results.py -l ${{ inputs.allow-level }} -v ${{ inputs.verbosity-level }} validation.xml
       shell: bash
