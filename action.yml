@@ -42,5 +42,7 @@ runs:
         java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
         echo "::endgroup::"
       shell: bash
+    - run: chmod -R a+r ~/.fhir
+      shell: bash
     - run: python3 ${{ github.action_path }}/analyze_results.py validation.xml ${{ inputs.allow-level }}
       shell: bash
