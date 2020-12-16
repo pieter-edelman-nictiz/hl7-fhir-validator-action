@@ -6,7 +6,7 @@ inputs:
   ig:
     description: An IG or profile definition to load
   recurse:
-    description: Look in subfolders when -ig refers to a folder
+    description: Look in subfolders when 'ig' refers to a folder
     default: "true"
   tx:
     description: The [base] url of a FHIR terminology server
