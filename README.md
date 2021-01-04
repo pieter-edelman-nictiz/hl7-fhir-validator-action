@@ -16,7 +16,7 @@ In your workflow YAML, add the following step:
     ...
 ```
 
-It might be a good idea to keep the re-use the validator cache across runs using the [cache action](https://github.com/actions/cache) (there's no need to cache the FHIR Validator .jar itself as it is already hosted on Github). A minimal example might look like:
+It might be a good idea to keep the re-use the validator cache across runs using the [cache action](https://github.com/actions/cache) (there's usually no need to cache the FHIR Validator .jar itself as it is already hosted on Github, but if you want to, the validator will be downloaded to the `~/validator` folder). A minimal example might look like:
 
 ```yaml
 name: Check FHIR messages

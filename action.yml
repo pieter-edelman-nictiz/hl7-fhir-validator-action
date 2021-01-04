@@ -28,7 +28,12 @@ runs:
   steps:
     - run: |
         echo "::group::Echo getting the validator"
-        wget -nv https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+        if [ ! -f ~/validator/validator_cli.jar ]; then
+          mkdir -p ~/validator
+          wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+        else
+          echo "Validator already present"
+        fi
         echo "::endgroup::"
       shell: bash
     - run: |
@@ -42,7 +47,7 @@ runs:
       shell: bash
     - run: |
         echo "::group::Run the validator"
-        java -jar validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
+        java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
         echo "::endgroup::"
       shell: bash
     - run: python3 ${{ github.action_path }}/analyze_results.py -l ${{ inputs.allow-level }} -v ${{ inputs.verbosity-level }} validation.xml
