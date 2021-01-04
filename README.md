@@ -56,5 +56,5 @@ This action supports a subset of the FHIR Validator parameters. Their usage is e
 
 Additionally, two parameters are control to steer the automation process:
 
-* allow-level: The level from which issues are considered not fatal (0 = error, 1 = warning, 2 = information). If issues below the specified level occur, this action will fail.
-* verbosity-level: Only show issues at this level or lower (0 = error, 1 = warning, 2 = information).
+* fail-at: The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this action will fail.
+* verbosity-level: Only show issues at this level or more severe (error, warning or information).
