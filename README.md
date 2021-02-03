@@ -54,7 +54,17 @@ This action supports a subset of the FHIR Validator parameters. Their usage is e
 * profile: the canonical URL to validate against.
 * language: The language to use when validating coding displays - same value as for xml:lang.
 
-Additionally, two parameters are control to steer the automation process:
+Additionally, these parameters can be used to control the automation process:
 
 * fail-at: The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this action will fail.
 * verbosity-level: Only show issues at this level or more severe (error, warning or information).
+* ignore-errors: An optional YAML file with issues to ignore. It is mandatory to provide a reason for each ignored issue. The file should be formatted like:
+  
+  ```yaml
+  [resource.id]:
+    [FHIRPath expression (as reported by the Validator)]:
+      - ignore: "[The error message (may be just the first part)]"
+        reason: "[An explanation of why the issue can be ignored]"
+      - ignore: "[Another error to ignore]"
+        reason: "[Another explanation]"
+  ```
