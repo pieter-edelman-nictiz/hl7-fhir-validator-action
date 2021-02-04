@@ -58,7 +58,7 @@ Additionally, these parameters can be used to control the automation process:
 
 * fail-at: The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this action will fail.
 * verbosity-level: Only show issues at this level or more severe (error, warning or information).
-* ignore-errors: An optional YAML file with issues to ignore. It is mandatory to provide a reason for each ignored issue. The file should be formatted like:
+* ignored-issues: An optional YAML file with issues to ignore. It is mandatory to provide a reason for each ignored issue. The file should be formatted like:
   
   ```yaml
   [resource.id]:

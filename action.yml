@@ -45,7 +45,7 @@ runs:
         echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)"
         echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)"
         echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -language ${{ inputs.language }};fi)"
-        echo "::set-output name=opt_ignore_errors::$(if [ ! -z ${{inputs.ignore-errors}} ]; then echo --ignore-errors=${{ inputs.ignore-errors }};fi)"
+        echo "::set-output name=opt_ignored_issues::$(if [ ! -z ${{inputs.ignored-issues}} ]; then echo --ignored-issues=${{ inputs.ignored-issues }};fi)"
       id: set_options
       shell: bash
     - run: |
@@ -53,5 +53,5 @@ runs:
         java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
         echo "::endgroup::"
       shell: bash
-    - run: python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.opt_ignore_errors }} validation.xml
+    - run: python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.opt_ignored_issues }} validation.xml
       shell: bash
