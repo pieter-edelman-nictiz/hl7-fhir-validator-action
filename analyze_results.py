@@ -80,12 +80,12 @@ if __name__ == "__main__":
 
             # Check to see if the issue is known and should be ignored
             issue_ignored = False
-            if result.id in ignored_issues and expression in ignored_issues[result.id]:
-                for known_issue in ignored_issues[result.id][expression]:
-                    if "ignore" in known_issue:
-                        if text.startswith(known_issue["ignore"]):
-                            # To make the ignored errors usable for other tools, we only enforce requirements for the
-                            # issues that we encounter.
+            if result.id in ignored_issues and \
+                "ignored issues" in ignored_issues[result.id] and \
+                expression in ignored_issues[result.id]["ignored issues"]:
+                for known_issue in ignored_issues[result.id]["ignored issues"][expression]:
+                    if "message" in known_issue:
+                        if text.startswith(known_issue["message"]):
                             if "reason" not in known_issue:
                                 print(f"Error at {result.id}/{expression} ignored without providing a reason")
                                 sys.exit(1)
