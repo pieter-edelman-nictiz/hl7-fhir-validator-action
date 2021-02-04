@@ -71,6 +71,10 @@ if __name__ == "__main__":
         file_name = outcome.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-file']/f:valueString", ns).attrib["value"]
         result = Result(file_name)
 
+        curr_ignored_issues = {}
+        if result.id in ignored_issues and "ignored issues" in ignored_issues[result.id]:
+            curr_ignored_issues = ignored_issues[result.id]["ignored issues"]
+
         for issue in outcome.findall("f:issue", ns):
             line       = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line']/f:valueInteger", ns).attrib["value"]
             col        = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col']/f:valueInteger", ns).attrib["value"]
@@ -80,20 +84,26 @@ if __name__ == "__main__":
 
             # Check to see if the issue is known and should be ignored
             issue_ignored = False
-            if result.id in ignored_issues and \
-                "ignored issues" in ignored_issues[result.id] and \
-                expression in ignored_issues[result.id]["ignored issues"]:
-                for known_issue in ignored_issues[result.id]["ignored issues"][expression]:
+            if expression in curr_ignored_issues:
+                for known_issue in curr_ignored_issues[expression]:
                     if "message" in known_issue:
                         if text.startswith(known_issue["message"]):
                             if "reason" not in known_issue:
-                                print(f"Error at {result.id}/{expression} ignored without providing a reason")
+                                print(f"Issue at {result.id}/{expression} ignored without providing a reason")
                                 sys.exit(1)
                             issue_ignored = True
+                            known_issue["processed"] = True
 
             if not issue_ignored:
                 result.addIssue(line, col, severity, text, expression)
         results.append(result)
+
+        # Check if all issues have been processed
+        for expression in curr_ignored_issues:
+            for known_issue in curr_ignored_issues[expression]:
+                if "processed" not in known_issue:
+                    print(f"An ignored issue was provided for {result.id}/{expression}, but the issue didn't occur")
+                    sys.exit(1)
 
     # Print out the results per file
     success = True
