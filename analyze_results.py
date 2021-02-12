@@ -54,7 +54,10 @@ if __name__ == "__main__":
 
     ignored_issues = {}
     if options.ignored_issues:
-        ignored_issues = yaml.safe_load(open(options.ignored_issues, "r"))
+        with open(options.ignored_issues, "r") as f:
+            ignored_issues = yaml.safe_load(f)
+        if type(ignored_issues) != "dict": # Empty file
+            ignored_issues = {}
 
     tree = ET.parse(args[0])
     ns = {"f": "http://hl7.org/fhir"}
