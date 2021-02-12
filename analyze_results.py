@@ -79,11 +79,25 @@ if __name__ == "__main__":
             curr_ignored_issues = ignored_issues[result.id]["ignored issues"]
 
         for issue in outcome.findall("f:issue", ns):
-            line       = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line']/f:valueInteger", ns).attrib["value"]
-            col        = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col']/f:valueInteger", ns).attrib["value"]
-            severity   = issue.find("f:severity", ns).attrib["value"]
-            text       = issue.find("f:details/f:text", ns).attrib["value"]
-            expression = issue.find("f:expression", ns).attrib["value"]
+            # Extract relevant information from the OperationOutcome
+            try:
+                text = issue.find("f:details/f:text", ns).attrib["value"]
+            except AttributeError:
+                text = "_No description_"
+
+            try:
+                line = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line']/f:valueInteger", ns).attrib["value"]
+                col  = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col']/f:valueInteger", ns).attrib["value"]
+            except AttributeError:
+                line = "?"
+                col  = "?"
+
+            severity = issue.find("f:severity", ns).attrib["value"]
+
+            try:
+                expression = issue.find("f:expression", ns).attrib["value"]
+            except AttributeError:
+                expression = ""
 
             # Check to see if the issue is known and should be ignored
             issue_ignored = False
@@ -96,6 +110,9 @@ if __name__ == "__main__":
                                 sys.exit(1)
                             issue_ignored = True
                             known_issue["processed"] = True
+            # When everything is ok, the Validator will output an "All OK" issue which we should ignore.
+            elif severity == "information" and text == "All OK" and len(outcome.findall("f:issue", ns)) == 1:
+                issue_ignored = True
 
             if not issue_ignored:
                 result.addIssue(line, col, severity, text, expression)
