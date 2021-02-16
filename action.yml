@@ -31,12 +31,12 @@ runs:
     - run: |
         sources=$(for source in ${{ inputs.source }}; do [[ -f $source ]] && echo $source; done)
         echo $sources
-        if [ -z "$sources" ]; then
-          echo "No input, skipping"
-          echo "::set-output name=run::false"
-        else
-          echo "::set-output name=run::true"
-        fi
+        # if [ -z "$sources" ]; then
+        #   echo "No input, skipping"
+        #   echo "::set-output name=run::false"
+        # else
+        #   echo "::set-output name=run::true"
+        # fi
       id: check_run
       shell: bash
     - run: |
