@@ -30,7 +30,7 @@ runs:
   steps:
     - run: |
         for source in ${{inputs.source}}; do
-          echo $source
+          [[ -f $source ]] &&n echo $source
         done
         sources=$(for source in "${{inputs.source}}"; do [[ -f $source ]] && echo $source; done)
         echo $sources
