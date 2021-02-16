@@ -29,14 +29,32 @@ runs:
   using: composite
   steps:
     - run: |
-        echo "::group::Echo getting the validator"
-        if [ ! -f ~/validator/validator_cli.jar ]; then
-          mkdir -p ~/validator
-          wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+        do_run=false
+        for source in ${{inputs.source}}; do 
+          if [[ -f $source ]]; then
+            do_run=true
+          fi
+        done
+        if $do_run; then
+          echo "::set-output name=run::run"
         else
-          echo "Validator already present"
+          echo "No input, skipping"
+          echo "::set-output name=run::"
         fi
-        echo "::endgroup::"
+      id: check_run
+      shell: bash
+    - run: |
+        echo ${{ steps.check_run.outputs.run }}
+        if [ ${{ steps.check_run.outputs.run }} ]; then
+          echo "::group::Echo getting the validator"
+          if [ ! -f ~/validator/validator_cli.jar ]; then
+            mkdir -p ~/validator
+            wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+          else
+            echo "Validator already present"
+          fi
+          echo "::endgroup::"
+        fi
       shell: bash
     - run: |
         echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
@@ -49,9 +67,14 @@ runs:
       id: set_options
       shell: bash
     - run: |
-        echo "::group::Run the validator"
-        java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
-        echo "::endgroup::"
+        if [ ${{ steps.check_run.outputs.run }} ]; then
+          echo "::group::Run the validator"
+          java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
+          echo "::endgroup::"
+        fi
       shell: bash
-    - run: python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.opt_ignored_issues }} validation.xml
+    - run: |
+        if [ ${{ steps.check_run.outputs.run }} ]; then
+          python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.opt_ignored_issues }} validation.xml
+        fi
       shell: bash
