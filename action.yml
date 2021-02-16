@@ -29,7 +29,7 @@ runs:
   using: composite
   steps:
     - run: |
-        echo "${{inputs.source}}"
+        echo ${{inputs.source}}
         sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
         echo $sources
         if [ -z "$sources" ]; then
