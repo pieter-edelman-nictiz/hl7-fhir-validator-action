@@ -31,7 +31,7 @@ runs:
     - run: |
         echo ${{inputs.source}}
         for source in ${{inputs.source}}; do 
-          [[ -f $source ]] && echo $source;
+          echo $source;
         done
         sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
         echo "Sources="$sources
