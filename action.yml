@@ -29,11 +29,12 @@ runs:
   using: composite
   steps:
     - run: |
-      run=true
-      if [ -z ${{ inputs.source }} ]; then
-        echo "No input, skipping"
-        run=false
-      fi
+        run=true
+        if [ -z ${{ inputs.source }} ]; then
+          echo "No input, skipping"
+          run=false
+        fi
+      shell: bash
     - run: |
         if $run; then
           echo "::group::Echo getting the validator"
