@@ -30,7 +30,7 @@ runs:
   steps:
     - run: |
         sources=$(for source in ${{inputs.source}}; do
-          [[ -f $source ]] && echo $source
+          [[ -f $source ]] && echo $source;
         done)
         # sources=$(for source in "${{inputs.source}}"; do [[ -f $source ]] && echo $source; done)
         echo $sources
@@ -43,6 +43,7 @@ runs:
       id: check_run
       shell: bash
     - run: |
+        echo ${{ steps.check_run.run s}}
         if [ ${{ steps.check_run.run }} ]; then
           echo "::group::Echo getting the validator"
           if [ ! -f ~/validator/validator_cli.jar ]; then
