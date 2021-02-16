@@ -29,8 +29,7 @@ runs:
   using: composite
   steps:
     - run: |
-        sources=$(for source in ${{inputs.source}}; do
-          [[ -f $source ]] && echo $source; done)
+        sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
         # sources=$(for source in "${{inputs.source}}"; do [[ -f $source ]] && echo $source; done)
         echo $sources
         if [ -z "$sources" ]; then
@@ -42,8 +41,8 @@ runs:
       id: check_run
       shell: bash
     - run: |
-        echo ${{ steps.outputs.check_run.run }}
-        if [ ${{ steps.steps.outputs.check_run.run }} ]; then
+        echo ${{ steps.check_run.outputs.run }}
+        if [ ${{ steps.check_run.outputs.run }} ]; then
           echo "::group::Echo getting the validator"
           if [ ! -f ~/validator/validator_cli.jar ]; then
             mkdir -p ~/validator
@@ -65,14 +64,14 @@ runs:
       id: set_options
       shell: bash
     - run: |
-        if [ ${{ steps.outputs.check_run.run }} ]; then
+        if [ ${{ steps.check_run.outputs.run }} ]; then
           echo "::group::Run the validator"
           java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
           echo "::endgroup::"
         fi
       shell: bash
     - run: |
-        if [ ${{ steps.outputs.check_run.run }} ]; then
+        if [ ${{ steps.check_run.outputs.run }} ]; then
           python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.opt_ignored_issues }} validation.xml
         fi
       shell: bash
