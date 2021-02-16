@@ -33,7 +33,7 @@ runs:
         for source in ${{inputs.source}}; do 
           echo $source;
         done
-        sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
+        # sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
         echo "Sources="$sources
         if [ -z "$sources" ]; then
           echo "No input, skipping"
