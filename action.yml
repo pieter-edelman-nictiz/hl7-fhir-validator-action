@@ -30,7 +30,7 @@ runs:
   steps:
     - run: |
         run=true
-        if [ -z ${{ inputs.source}} ]; then
+        if [ -z "${{ inputs.source}}" ]; then
           echo "No input, skipping"
           run=false
         fi
