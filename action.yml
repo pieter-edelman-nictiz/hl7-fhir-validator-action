@@ -43,7 +43,7 @@ runs:
       id: check_run
       shell: bash
     - run: |
-        echo ${{ steps.check_run.run s}}
+        echo ${{ steps.check_run.run }}
         if [ ${{ steps.check_run.run }} ]; then
           echo "::group::Echo getting the validator"
           if [ ! -f ~/validator/validator_cli.jar ]; then
