@@ -31,6 +31,7 @@ runs:
     - run: |
         run=true
         sources=${{ inputs.source }}
+        echo $sources
         if [ -z "$sources" ]; then
           echo "No input, skipping"
           run=false
