@@ -30,9 +30,12 @@ runs:
   steps:
     - run: |
         echo ${{inputs.source}}
-        sources=`for source in ${{inputs.source}}; do 
-          [[ -f $source ]] && echo $source;
-        done`
+        sources=""
+        for source in ${{inputs.source}}; do 
+          if [[ -f $source ]]; then
+            sources="$sources $source"
+          fi
+        done
         # sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
         echo "Sources="$sources
         if [ -z "$sources" ]; then
