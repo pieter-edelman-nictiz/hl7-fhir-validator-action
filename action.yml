@@ -29,20 +29,14 @@ runs:
   using: composite
   steps:
     - run: |
-        echo ${{inputs.source}}
-        sources=""
+        echo "::set-output name=run::"
         for source in ${{inputs.source}}; do 
           if [[ -f $source ]]; then
-            sources="$sources $source"
+            echo "::set-output name=run::run"
           fi
         done
-        # sources=$(for source in ${{inputs.source}}; do [[ -f $source ]] && echo $source; done)
-        echo "Sources="$sources
-        if [ -z "$sources" ]; then
+        if [ -z ${{ outputs.run}} ]; then
           echo "No input, skipping"
-          echo "::set-output name=run::"
-        else
-          echo "::set-output name=run::run"
         fi
       id: check_run
       shell: bash
