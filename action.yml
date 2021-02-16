@@ -29,14 +29,17 @@ runs:
   using: composite
   steps:
     - run: |
-        echo "::set-output name=run::"
+        do_run=false
         for source in ${{inputs.source}}; do 
           if [[ -f $source ]]; then
-            echo "::set-output name=run::run"
+            do_run=true
           fi
         done
-        if [ -z ${{ outputs.run}} ]; then
+        if $do_run; then
+          echo "::set-output name=run::run"
+        else
           echo "No input, skipping"
+          echo "::set-output name=run::"
         fi
       id: check_run
       shell: bash
