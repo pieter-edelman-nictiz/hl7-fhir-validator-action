@@ -30,7 +30,8 @@ runs:
   steps:
     - run: |
         run=true
-        if [ -z "${{ inputs.source}}" ]; then
+        sources=${{ inputs.source }}
+        if [ -z "$sources" ]; then
           echo "No input, skipping"
           run=false
         fi
