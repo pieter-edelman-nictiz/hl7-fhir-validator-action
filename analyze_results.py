@@ -53,10 +53,11 @@ if __name__ == "__main__":
         parser.error("Chosen verbosity level would silence fatal issues")   
 
     ignored_issues = {}
+
     if options.ignored_issues:
         with open(options.ignored_issues, "r") as f:
             ignored_issues = yaml.safe_load(f)
-        if type(ignored_issues) != "dict": # Empty file
+        if type(ignored_issues) != dict: # Empty file
             ignored_issues = {}
 
     tree = ET.parse(args[0])
