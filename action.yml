@@ -18,7 +18,7 @@ inputs:
     description: a file, url, directory or pattern for resources to validate
     required: true
   fail-at:
-    description: The level at which issues are considered fatal (error, warning or information).
+    description: The level at which issues are considered fatal (fatal, error, warning or information).
     default: error
   verbosity-level:
     description: Only show issues at this level or more severe (error, warning or information).

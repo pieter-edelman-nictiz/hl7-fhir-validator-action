@@ -5,9 +5,10 @@ import xml.etree.ElementTree as ET
 from optparse import OptionParser, OptionValueError
 
 issue_levels = {
-    "error": 0,
-    "warning": 1,
-    "information": 2
+    "fatal": 0,
+    "error": 1,
+    "warning": 2,
+    "information": 3
 }
 
 class Result:
@@ -39,7 +40,7 @@ if __name__ == "__main__":
     parser.add_option("-a", "--fail-at", type = "choice", choices = ["error", "warning", "information"], default = "error", 
         help="The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this script will exit with a non-zero status.")
     parser.add_option("-v", "--verbosity-level", type = "choice", choices = ["error", "warning", "information"], default = "information",
-        help="Only show issues at this level or lower (0 = error, 1 = warning, 2 = information).")
+        help="Only show issues at this level or lower (fatal, error, warning, information).")
     parser.add_option("--ignored-issues", type="string",
         help="A YAML file with issues that should be ignored.")
 
