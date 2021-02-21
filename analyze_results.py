@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, yaml
+import json, sys, yaml
 import xml.etree.ElementTree as ET
+import xml.parsers.expat
 from optparse import OptionParser, OptionValueError
 
 issue_levels = {
@@ -11,16 +12,84 @@ issue_levels = {
     "information": 3
 }
 
+class ElementId:
+    def __init__(self, start, end, id):
+        self.start = (int(start[0]), int(start[1]))
+        self.end   = (int(end[0]),   int(end[1]))
+        self.id    = id
+    
+    def has(self, line, col):
+        line = int(line)
+        col  = int(col)
+        if (line > self.start[0] or (line == self.start[0] and col >= self.start[1])) and \
+           (line < self.end[0]   or (line == self.end[0]   and col <  self.end[1])):
+           return self.id
+        return False
+
+class XMLElementIdMapper:
+    def __init__(self):
+        self.parser = xml.parsers.expat.ParserCreate()
+        self.parser.StartElementHandler = self.start_handler
+        self.parser.EndElementHandler   = self.end_handler
+
+    def parse(self, path):
+        self.element_ids = []
+        self.is_structuredefinition = False
+        self.curr_element_start = None
+        self.parser.ParseFile(open(path, "rb"))
+        return self.element_ids
+ 
+    def start_handler(self, tag_name, attributes):
+        if tag_name == "element":
+            if "id" in attributes:
+                self.in_element_with_id = True
+                self.curr_element_start = (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber)
+                self.curr_element_id    = attributes["id"]
+
+    def end_handler(self, tag_name):
+        if tag_name == "element" and self.in_element_with_id:
+            self.in_element_with_id = False
+            self.element_ids.append(ElementId(self.curr_element_start, (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber), self.curr_element_id))
+
+class JSONElementIdMapper(json.JSONDecoder):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.parse_object = self.interceptingJSONObject
+        self.scan_once = json.scanner.py_make_scanner(self)
+    
+    def parse(self, path):
+        self.json_string = open(path).read()
+        self.element_ids = []
+        super().decode(self.json_string)
+        return self.element_ids
+    
+    def interceptingJSONObject(self, s_and_end, *args):
+        result = json.decoder.JSONObject(s_and_end, *args)
+        if "id" in result[0]:
+            self.element_ids.append(ElementId(self.posToLineCol(s_and_end[1]), self.posToLineCol(result[1]), result[0]["id"]))
+        
+        return result
+
+    def posToLineCol(self, pos):
+        line = self.json_string.count('\n', 0, pos) + 1
+        col  = pos - self.json_string.rfind('\n', 0, pos)
+        return (line, col)
+
 class Result:
     def __init__(self, file_path):
         self.file_path = file_path
 
         # Get the id of the resource, if any
-        resource_tree = ET.parse(file_path)
-        try:
-            self.id = resource_tree.find(".//f:id", ns).attrib["value"]
-        except AttributeError:
-            self.id = None
+        if file_path.endswith(".xml"):
+            resource_tree = ET.parse(file_path)
+            try:
+                self.id = resource_tree.find(".//f:id", ns).attrib["value"]
+            except AttributeError:
+                self.id = None
+        elif file_path.endswith(".json"):
+            resource_tree = json.load(open(file_path))
+            if "id" in resource_tree:
+                self.id = resource_tree["id"]
 
         self.issues = []
 
@@ -71,10 +140,19 @@ if __name__ == "__main__":
         outcomes = [tree.getroot()]
     else:
         outcomes = tree.getroot().findall(".//f:OperationOutcome", ns)
-   
+
+    xml_id_mapper  = XMLElementIdMapper()
+    json_id_mapper = JSONElementIdMapper()
+
     for outcome in outcomes:
         file_name = outcome.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-file']/f:valueString", ns).attrib["value"]
         result = Result(file_name)
+        
+        elements = {}
+        if (file_name.endswith(".xml")):
+            elements = xml_id_mapper.parse(file_name)
+        elif (file_name.endswith(".json")):
+            elements = json_id_mapper.parse(file_name)
 
         curr_ignored_issues = {}
         if result.id in ignored_issues and "ignored issues" in ignored_issues[result.id]:
@@ -87,13 +165,19 @@ if __name__ == "__main__":
             except AttributeError:
                 text = "_No description_"
 
+            element_id = None
             try:
                 line = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line']/f:valueInteger", ns).attrib["value"]
                 col  = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col']/f:valueInteger", ns).attrib["value"]
+
+                for element in elements:
+                    element_id = element.has(line, col)
+                    if element_id != False:
+                        break 
+
             except AttributeError:
                 line = "?"
                 col  = "?"
-
             severity = issue.find("f:severity", ns).attrib["value"]
 
             try:
@@ -103,15 +187,20 @@ if __name__ == "__main__":
 
             # Check to see if the issue is known and should be ignored
             issue_ignored = False
+            ignored_issues_for_path = None
             if expression in curr_ignored_issues:
-                for known_issue in curr_ignored_issues[expression]:
-                    if "message" in known_issue:
-                        if text.startswith(known_issue["message"]):
-                            if "reason" not in known_issue:
+                ignored_issues_for_path = curr_ignored_issues[expression]
+            elif element_id in curr_ignored_issues:
+                ignored_issues_for_path = curr_ignored_issues[element_id]
+            if ignored_issues_for_path:
+                for ignored_issue in ignored_issues_for_path:
+                    if "message" in ignored_issue:
+                        if text.startswith(ignored_issue["message"]):
+                            if "reason" not in ignored_issue:
                                 print(f"Issue at {result.id}/{expression} ignored without providing a reason")
                                 sys.exit(1)
                             issue_ignored = True
-                            known_issue["processed"] = True
+                            ignored_issue["processed"] = True
             # When everything is ok, the Validator will output an "All OK" issue which we should ignore.
             elif severity == "information" and text == "All OK" and len(outcome.findall("f:issue", ns)) == 1:
                 issue_ignored = True
@@ -122,8 +211,8 @@ if __name__ == "__main__":
 
         # Check if all issues have been processed
         for expression in curr_ignored_issues:
-            for known_issue in curr_ignored_issues[expression]:
-                if "processed" not in known_issue:
+            for ignored_issue in curr_ignored_issues[expression]:
+                if "processed" not in ignored_issue:
                     print(f"An ignored issue was provided for {result.id}/{expression}, but the issue didn't occur")
                     sys.exit(1)
 
