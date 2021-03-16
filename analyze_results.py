@@ -169,13 +169,13 @@ if __name__ == "__main__":
             id_str += "== " + result.file_path
             if result.id:
                 id_str += f" ({result.id})"
+            id_str += formatter.RESET
             print(id_str)
             for issue in result.issues:
                 if issue_levels[issue.severity] <= fail_level:
                     success = False
                 if issue_levels[issue.severity] <= verbosity_level:
                     issue.print(formatter)
-            id_str += formatter.RESET
             print()
 
     if not success:
