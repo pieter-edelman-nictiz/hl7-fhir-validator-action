@@ -11,6 +11,39 @@ issue_levels = {
     "information": 3
 }
 
+class Formatter:
+    """ Default provider for formatting characters """
+    def __getattr__(self, value):
+        return ""
+
+class ColorFormatter(Formatter):
+    """ Formatter to provide ANSI escape codes for terminal colors. """
+    RESET       = "\033[0m"
+    OK          = "\033[1;32m"
+    ERROR       = "\033[1;31m"
+    WARNING     = "\033[1;33m"
+    INFORMATION = "\033[1;34m"
+    HEADING     = "\033[1;37m"
+
+class Issue:
+    def __init__(self, line, col, severity, text, expression):
+        self.line       = line
+        self.col        = col
+        self.severity   = severity
+        self.text       = text
+        self.expression = expression
+    
+    def print(self, formatter):
+        if self.severity in ["fatal", "error"]:
+            color = formatter.ERROR
+        elif self.severity == "warning":
+            color = formatter.WARNING
+        else:
+            color = formatter.INFORMATION
+        out =  f"  -  {color}{self.severity}{formatter.RESET} at {self.expression} ({self.line}, {self.col}):\n"
+        out += f"     {self.text}"
+        print(out)
+
 class Result:
     def __init__(self, file_path):
         self.file_path = file_path
@@ -27,13 +60,7 @@ class Result:
     def addIssue(self, line, col, severity, text, expression):
         if not severity in issue_levels:
             raise Exception(f"Unknown severity '{severity}' when validating file {self.file_path}")
-        self.issues.append({
-            "line": line,
-            "col": col,
-            "severity": severity,
-            "text": text,
-            "expression": expression
-        })
+        self.issues.append(Issue(line, col, severity, text, expression))
 
 if __name__ == "__main__":
     parser = OptionParser("usage: %prog [options] validator_result.xml")
@@ -41,6 +68,8 @@ if __name__ == "__main__":
         help="The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this script will exit with a non-zero status.")
     parser.add_option("-v", "--verbosity-level", type = "choice", choices = ["error", "warning", "information"], default = "information",
         help="Only show issues at this level or lower (fatal, error, warning, information).")
+    parser.add_option("-c", "--colorize", action = "store_true",
+        help="Colorize the output.")
     parser.add_option("--ignored-issues", type="string",
         help="A YAML file with issues that should be ignored.")
 
@@ -52,6 +81,11 @@ if __name__ == "__main__":
     verbosity_level = issue_levels[options.verbosity_level]
     if fail_level > verbosity_level:
         parser.error("Chosen verbosity level would silence fatal issues")   
+
+    if options.colorize:
+        formatter = ColorFormatter()
+    else:
+        formatter = Formatter()
 
     ignored_issues = {}
 
@@ -131,19 +165,20 @@ if __name__ == "__main__":
     success = True
     for result in results:
         if len(result.issues) > 0:
-            id_str = "== " + result.file_path
+            id_str =  formatter.HEADING
+            id_str += "== " + result.file_path
             if result.id:
                 id_str += f" ({result.id})"
             print(id_str)
             for issue in result.issues:
-                if issue_levels[issue["severity"]] <= fail_level:
+                if issue_levels[issue.severity] <= fail_level:
                     success = False
-                if issue_levels[issue["severity"]] <= verbosity_level:
-                    print(f"  -  {issue['severity']} at {issue['expression']} ({issue['line']}, {issue['col']}):")
-                    print(f"     {issue['text']}")
+                if issue_levels[issue.severity] <= verbosity_level:
+                    issue.print(formatter)
+            id_str += formatter.RESET
             print()
 
     if not success:
-        print("There were errors during validation")
+        print(formatter.ERROR + "There were errors during validation" + formatter.RESET)
         sys.exit(1)
-    print("All well")
+    print(formatter.OK + "All well" + formatter.RESET)
