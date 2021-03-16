@@ -23,7 +23,6 @@ class ColorFormatter(Formatter):
     ERROR       = "\033[1;31m"
     WARNING     = "\033[1;33m"
     INFORMATION = "\033[1;34m"
-    HEADING     = "\033[1;37m"
 
 class Issue:
     def __init__(self, line, col, severity, text, expression):
@@ -165,11 +164,9 @@ if __name__ == "__main__":
     success = True
     for result in results:
         if len(result.issues) > 0:
-            id_str =  formatter.HEADING
-            id_str += "== " + result.file_path
+            id_str = "== " + result.file_path
             if result.id:
                 id_str += f" ({result.id})"
-            id_str += formatter.RESET
             print(id_str)
             for issue in result.issues:
                 if issue_levels[issue.severity] <= fail_level:
