@@ -75,8 +75,101 @@ class JSONElementIdMapper(json.JSONDecoder):
         col  = pos - self.json_string.rfind('\n', 0, pos)
         return (line, col)
 
-class Result:
-    def __init__(self, file_path):
+class IgnoredIssues:
+    """ Handle the ignored issues as defined in a YAML file. """
+
+    def __init__(self, path = None):
+        """ Initialize with a path to the ignored issues YAML file. """
+
+        self.ignored_issues = None
+
+        if path:
+            with open(options.ignored_issues, "r") as f:
+                self.ignored_issues = yaml.safe_load(f)
+            if type(self.ignored_issues) != dict: # Empty file
+                self.ignored_issues = None
+
+    def selectResourceId(self, resource_id, file_type = None):
+        """ Select a resource id from the YAML file to work on (if any). """
+        self.resource_id         = resource_id
+        self.issues_for_resource = {}
+        self.issues_for_sd       = {}
+        self.element_ids         = []
+        self.issues              = []
+        if self.ignored_issues and resource_id in self.ignored_issues:
+            if "ignored issues" in self.ignored_issues[resource_id]:
+                self.issues_for_resource = self.ignored_issues[resource_id]["ignored issues"]
+            if "ignored StructureDefinition issues" in self.ignored_issues[resource_id]:
+                self.issues_for_sd = self.ignored_issues[resource_id]["ignored StructureDefinition issues"]
+                if (file_type == "xml"):
+                    self.element_ids = XMLElementIdMapper().parse(file_name)
+                else:
+                    self.element_ids = JSONElementIdMapper().parse(file_name)
+
+    def has(self, expression, message):
+        """ Check if the resource currently selected using selectResourceId() has an error with the specified
+            characteristics. """
+        if expression in self.issues_for_resource:
+            return self._checkIgnoredIssue(self.issues_for_resource[expression], message, expression)
+        return False
+
+    def hasForSD(self, line, col, message):
+        if len(self.issues_for_sd) > 0:
+            for element in self.element_ids:
+                element_id = element.has(line, col)
+                if element_id != False:
+                    break 
+
+            return self._checkIgnoredIssue(self.issues_for_sd[element_id], message, element_id)
+        
+        return False
+
+    def finishSelectedId(self):
+        """ Check if all issues have been processed. """
+
+        def checkIssues(issues):
+            for location in issues:
+                for issue in issues[location]:
+                    if "handled" not in issue or not issue["handled"]:
+                        self.issues.append({
+                            "line": "?",
+                            "col": "?",
+                            "severity": "fatal",
+                            "text": "An ignored issue was provided, but the issue didn't occur",
+                            "expression": location
+                        })
+
+        checkIssues(self.issues_for_resource)
+        checkIssues(self.issues_for_sd)
+        return self.issues
+
+    def _checkIgnoredIssue(self, ignored_issues, message, location):
+        result = False
+
+        for ignored_issue in ignored_issues:
+            if "message" in ignored_issue and message.startswith(ignored_issue["message"]):
+                if "reason" not in ignored_issue:
+                    self.issues.append({
+                        "line": "?",
+                        "col": "?",
+                        "severity": "fatal",
+                        "text": "Issue ignored without providing a reason",
+                        "expression": location
+                    })
+                result = True
+                ignored_issue["handled"] = True
+
+        return result
+
+class ResourceIssues:
+    """ Container for all the issues for a single FHIR resource. """
+    
+    def __init__(self, file_path, ignored_issues):
+        """ Initialize the class.
+            - file_path: the path to the resource file in xml or json (required)
+            - ignored_issues: an optional IgnoredIssues instance
+        """
+
         self.file_path = file_path
 
         # Get the id of the resource, if any
@@ -92,17 +185,26 @@ class Result:
                 self.id = resource_tree["id"]
 
         self.issues = []
+        self.ignored_issues = ignored_issues
+        self.ignored_issues.selectResourceId(self.id, "xml" if file_path.endswith(".xml") else "json")
 
     def addIssue(self, line, col, severity, text, expression):
+        """ Add the issue with the specified characteristics, unless it is listed in the ignored_issues. """
         if not severity in issue_levels:
             raise Exception(f"Unknown severity '{severity}' when validating file {self.file_path}")
-        self.issues.append({
-            "line": line,
-            "col": col,
-            "severity": severity,
-            "text": text,
-            "expression": expression
-        })
+
+        if not (self.ignored_issues.has(expression, text) or self.ignored_issues.hasForSD(line, col, text)):
+            self.issues.append({
+                "line": line,
+                "col": col,
+                "severity": severity,
+                "text": text,
+                "expression": expression
+            })
+
+    def finish(self):
+        """ Indicate that the check for the current resource is finished. """
+        self.issues += self.ignored_issues.finishSelectedId()
 
 if __name__ == "__main__":
     parser = OptionParser("usage: %prog [options] validator_result.xml")
@@ -122,42 +224,23 @@ if __name__ == "__main__":
     if fail_level > verbosity_level:
         parser.error("Chosen verbosity level would silence fatal issues")   
 
-    ignored_issues = {}
-
-    if options.ignored_issues:
-        with open(options.ignored_issues, "r") as f:
-            ignored_issues = yaml.safe_load(f)
-        if type(ignored_issues) != dict: # Empty file
-            ignored_issues = {}
+    ignored_issues = IgnoredIssues(options.ignored_issues)
 
     tree = ET.parse(args[0])
     ns = {"f": "http://hl7.org/fhir"}
 
     # Parse the Validator output, which will produce an OperationOutcome for each checked file (either a singele
     # OperationOutcome or a Bundle)
-    results = []
+    issues = []
     if tree.getroot().tag == "{http://hl7.org/fhir}OperationOutcome":
         outcomes = [tree.getroot()]
     else:
         outcomes = tree.getroot().findall(".//f:OperationOutcome", ns)
 
-    xml_id_mapper  = XMLElementIdMapper()
-    json_id_mapper = JSONElementIdMapper()
-
     for outcome in outcomes:
         file_name = outcome.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-file']/f:valueString", ns).attrib["value"]
-        result = Result(file_name)
+        resource_issues = ResourceIssues(file_name, ignored_issues)
         
-        elements = {}
-        if (file_name.endswith(".xml")):
-            elements = xml_id_mapper.parse(file_name)
-        elif (file_name.endswith(".json")):
-            elements = json_id_mapper.parse(file_name)
-
-        curr_ignored_issues = {}
-        if result.id in ignored_issues and "ignored issues" in ignored_issues[result.id]:
-            curr_ignored_issues = ignored_issues[result.id]["ignored issues"]
-
         for issue in outcome.findall("f:issue", ns):
             # Extract relevant information from the OperationOutcome
             try:
@@ -169,12 +252,6 @@ if __name__ == "__main__":
             try:
                 line = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line']/f:valueInteger", ns).attrib["value"]
                 col  = issue.find("f:extension[@url='http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col']/f:valueInteger", ns).attrib["value"]
-
-                for element in elements:
-                    element_id = element.has(line, col)
-                    if element_id != False:
-                        break 
-
             except AttributeError:
                 line = "?"
                 col  = "?"
@@ -185,46 +262,21 @@ if __name__ == "__main__":
             except AttributeError:
                 expression = ""
 
-            # Check to see if the issue is known and should be ignored
-            issue_ignored = False
-            ignored_issues_for_path = None
-            if expression in curr_ignored_issues:
-                ignored_issues_for_path = curr_ignored_issues[expression]
-            elif element_id in curr_ignored_issues:
-                ignored_issues_for_path = curr_ignored_issues[element_id]
-            if ignored_issues_for_path:
-                for ignored_issue in ignored_issues_for_path:
-                    if "message" in ignored_issue:
-                        if text.startswith(ignored_issue["message"]):
-                            if "reason" not in ignored_issue:
-                                print(f"Issue at {result.id}/{expression} ignored without providing a reason")
-                                sys.exit(1)
-                            issue_ignored = True
-                            ignored_issue["processed"] = True
-            # When everything is ok, the Validator will output an "All OK" issue which we should ignore.
-            elif severity == "information" and text == "All OK" and len(outcome.findall("f:issue", ns)) == 1:
-                issue_ignored = True
+            if not (severity == "information" and text == "All OK" and len(outcome.findall("f:issue", ns)) == 1): # When everything is ok, the Validator will output an "All OK" issue which we should ignore.
+                resource_issues.addIssue(line, col, severity, text, expression)
 
-            if not issue_ignored:
-                result.addIssue(line, col, severity, text, expression)
-        results.append(result)
-
-        # Check if all issues have been processed
-        for expression in curr_ignored_issues:
-            for ignored_issue in curr_ignored_issues[expression]:
-                if "processed" not in ignored_issue:
-                    print(f"An ignored issue was provided for {result.id}/{expression}, but the issue didn't occur")
-                    sys.exit(1)
+        resource_issues.finish()
+        issues.append(resource_issues)
 
     # Print out the results per file
     success = True
-    for result in results:
-        if len(result.issues) > 0:
-            id_str = "== " + result.file_path
-            if result.id:
-                id_str += f" ({result.id})"
+    for resource_issues in issues:
+        if len(resource_issues.issues) > 0:
+            id_str = "== " + resource_issues.file_path
+            if resource_issues.id:
+                id_str += f" ({resource_issues.id})"
             print(id_str)
-            for issue in result.issues:
+            for issue in resource_issues.issues:
                 if issue_levels[issue["severity"]] <= fail_level:
                     success = False
                 if issue_levels[issue["severity"]] <= verbosity_level:
