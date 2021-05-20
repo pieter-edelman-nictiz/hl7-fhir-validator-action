@@ -22,7 +22,7 @@ class ElementId:
         line = int(line)
         col  = int(col)
         if (line > self.start[0] or (line == self.start[0] and col >= self.start[1])) and \
-           (line < self.end[0]   or (line == self.end[0]   and col <  self.end[1])):
+           (line < self.end[0]   or (line == self.end[0]   and col <= self.end[1])):
            return self.id
         return False
 
@@ -33,23 +33,24 @@ class XMLElementIdMapper:
         self.parser.EndElementHandler   = self.end_handler
 
     def parse(self, path):
+        self.elements = []
         self.element_ids = []
-        self.is_structuredefinition = False
-        self.curr_element_start = None
         self.parser.ParseFile(open(path, "rb"))
         return self.element_ids
  
     def start_handler(self, tag_name, attributes):
-        if tag_name == "element":
-            if "id" in attributes:
-                self.in_element_with_id = True
-                self.curr_element_start = (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber)
-                self.curr_element_id    = attributes["id"]
+        curr_element = {
+            "name": tag_name,
+            "start": (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber)
+        }
+        if "id" in attributes:
+            curr_element["id"] = attributes["id"]
+        self.elements.append(curr_element)
 
     def end_handler(self, tag_name):
-        if tag_name == "element" and self.in_element_with_id:
-            self.in_element_with_id = False
-            self.element_ids.append(ElementId(self.curr_element_start, (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber), self.curr_element_id))
+        curr_element = self.elements.pop()
+        if "id" in curr_element:
+            self.element_ids.append(ElementId(curr_element["start"], (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber), curr_element["id"]))
 
 class JSONElementIdMapper(json.JSONDecoder):
     def __init__(self, **kwargs):
@@ -93,54 +94,46 @@ class IgnoredIssues:
         """ Select a resource id from the YAML file to work on (if any). """
         self.resource_id         = resource_id
         self.issues_for_resource = {}
-        self.issues_for_sd       = {}
         self.element_ids         = []
         self.issues              = []
         if self.ignored_issues and resource_id in self.ignored_issues:
             if "ignored issues" in self.ignored_issues[resource_id]:
                 self.issues_for_resource = self.ignored_issues[resource_id]["ignored issues"]
-            if "ignored StructureDefinition issues" in self.ignored_issues[resource_id]:
-                self.issues_for_sd = self.ignored_issues[resource_id]["ignored StructureDefinition issues"]
                 if (file_type == "xml"):
                     self.element_ids = XMLElementIdMapper().parse(file_name)
                 else:
                     self.element_ids = JSONElementIdMapper().parse(file_name)
 
-    def has(self, expression, message):
-        """ Check if the resource currently selected using selectResourceId() has an error with the specified
-            characteristics. """
+    def hasForExpression(self, message, expression):
         if expression in self.issues_for_resource:
             return self._checkIgnoredIssue(self.issues_for_resource[expression], message, expression)
         return False
 
-    def hasForSD(self, line, col, message):
-        if len(self.issues_for_sd) > 0:
-            for element in self.element_ids:
-                element_id = element.has(line, col)
-                if element_id != False:
-                    break 
+    def hasForId(self, message, line, col):
+        element_id = None
+        for element in self.element_ids:
+            element_id = element.has(line, col)
+            if element_id != False:
+                break 
 
-            return self._checkIgnoredIssue(self.issues_for_sd[element_id], message, element_id)
-        
+        if element_id and element_id in self.issues_for_resource:
+            return self._checkIgnoredIssue(self.issues_for_resource[element_id], message, element_id)
         return False
 
     def finishSelectedId(self):
         """ Check if all issues have been processed. """
 
-        def checkIssues(issues):
-            for location in issues:
-                for issue in issues[location]:
-                    if "handled" not in issue or not issue["handled"]:
-                        self.issues.append({
-                            "line": "?",
-                            "col": "?",
-                            "severity": "fatal",
-                            "text": "An ignored issue was provided, but the issue didn't occur",
-                            "expression": location
-                        })
+        for location in self.issues_for_resource:
+            for issue in self.issues_for_resource[location]:
+                if "handled" not in issue or not issue["handled"]:
+                    self.issues.append({
+                        "line": "?",
+                        "col": "?",
+                        "severity": "fatal",
+                        "text": "An ignored issue was provided, but the issue didn't occur",
+                        "expression": location
+                    })
 
-        checkIssues(self.issues_for_resource)
-        checkIssues(self.issues_for_sd)
         return self.issues
 
     def _checkIgnoredIssue(self, ignored_issues, message, location):
@@ -193,7 +186,7 @@ class ResourceIssues:
         if not severity in issue_levels:
             raise Exception(f"Unknown severity '{severity}' when validating file {self.file_path}")
 
-        if not (self.ignored_issues.has(expression, text) or self.ignored_issues.hasForSD(line, col, text)):
+        if not (self.ignored_issues.hasForExpression(text, expression) or self.ignored_issues.hasForId(text, line, col)):
             self.issues.append({
                 "line": line,
                 "col": col,
