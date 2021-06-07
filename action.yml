@@ -74,6 +74,6 @@ runs:
       shell: bash
     - run: |
         if [ ${{ steps.check_run.outputs.run }} ]; then
-          python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} validation.xml
+          python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} --colorize validation.xml
         fi
       shell: bash
