@@ -55,9 +55,16 @@ class ElementId:
         self.id    = id
     
     def has(self, line, col):
-        """ Check if the specified line and column are within the current element. """
-        line = int(line)
-        col  = int(col)
+        """ Check if the specified line and column are within the current element. Return the id on success or False
+            when there's no match. """
+        
+        try:
+            line = int(line)
+            col  = int(col)
+        except ValueError:
+            # No valid line and/or column given
+            return False
+
         if (line > self.start[0] or (line == self.start[0] and col >= self.start[1])) and \
            (line < self.end[0]   or (line == self.end[0]   and col <= self.end[1])):
            return self.id
