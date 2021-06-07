@@ -13,12 +13,17 @@ issue_levels = {
 }
 
 class ElementId:
+    """ Store element id's along with their line and column number. """
+
     def __init__(self, start, end, id):
+        """ Store an element id. "start" and "end" should be tuples containing the line and column number of the 
+            element with the specified id (inclusive). """
         self.start = (int(start[0]), int(start[1]))
         self.end   = (int(end[0]),   int(end[1]))
         self.id    = id
     
     def has(self, line, col):
+        """ Check if the specified line and column are within the current element. """
         line = int(line)
         col  = int(col)
         if (line > self.start[0] or (line == self.start[0] and col >= self.start[1])) and \
@@ -27,12 +32,15 @@ class ElementId:
         return False
 
 class XMLElementIdMapper:
+    """ Map all the elements with an id in an XML file. """
+
     def __init__(self):
         self.parser = xml.parsers.expat.ParserCreate()
         self.parser.StartElementHandler = self.start_handler
         self.parser.EndElementHandler   = self.end_handler
 
     def parse(self, path):
+        """ Parse the file specified by path and return a list of ElementID instances for each element with an id. """
         self.elements = []
         self.element_ids = []
         self.parser.ParseFile(open(path, "rb"))
@@ -53,12 +61,17 @@ class XMLElementIdMapper:
             self.element_ids.append(ElementId(curr_element["start"], (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber), curr_element["id"]))
 
 class JSONElementIdMapper(json.JSONDecoder):
+    """ Map all the elements with an id in a JSON file.
+        This is a bit of a kludge that works by intercepting the internal workings of the Python JSONDecoder.
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.parse_object = self.interceptingJSONObject
         self.scan_once = json.scanner.py_make_scanner(self)
     
     def parse(self, path):
+        """ Parse the file specified by path and return a list of ElementID instances for each element with an id. """
         self.json_string = open(path).read()
         self.element_ids = []
         super().decode(self.json_string)
@@ -105,11 +118,14 @@ class IgnoredIssues:
                     self.element_ids = JSONElementIdMapper().parse(file_name)
 
     def hasForExpression(self, message, expression):
+        """ Check if an ignored issues with the given message is defined for the given expression. """
         if expression in self.issues_for_resource:
             return self._checkIgnoredIssue(self.issues_for_resource[expression], message, expression)
         return False
 
     def hasForId(self, message, line, col):
+        """ Check if an ignored issues with the given message is defined for the given element id, as represented by a
+            line and column number. """
         element_id = None
         for element in self.element_ids:
             element_id = element.has(line, col)
@@ -137,6 +153,8 @@ class IgnoredIssues:
         return self.issues
 
     def _checkIgnoredIssue(self, ignored_issues, message, location):
+        """ Check if an ignored issues with the given message is defined for the given expression or element id.
+            If this is the case, the issue will be marked as "handled". """ 
         result = False
 
         for ignored_issue in ignored_issues:

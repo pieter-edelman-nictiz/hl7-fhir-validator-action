@@ -63,9 +63,11 @@ Additionally, these parameters can be used to control the automation process:
   ```yaml
   [resource.id]:
     ignored issues:
-      [FHIRPath expression (as reported by the Validator)]:
+      [location]:
         - message: "[The error message (may be just the first part)]"
           reason: "[An explanation of why the issue can be ignored]"
         - message: "[Another error to ignore]"
           reason: "[Another explanation]"
   ```
+
+  Where `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs.
