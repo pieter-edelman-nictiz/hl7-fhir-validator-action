@@ -4,7 +4,7 @@ inputs:
   version:
     description: The FHIR version to use
   ig:
-    description: An IG or profile definition to load
+    description: An IG or profile definition to load (multiple ig's seperated by spaces may be defined)
   recurse:
     description: Look in subfolders when 'ig' refers to a folder
     default: "true"
@@ -57,7 +57,7 @@ runs:
       shell: bash
     - run: |
         echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
-        echo "::set-output name=opt_ig::$(if [ ! -z ${{inputs.ig}} ]; then echo -ig ${{ inputs.ig }};fi)"
+        echo "::set-output name=opt_ig::$(for ig in ${{inputs.ig}}; do echo -n "-ig $ig ";done)"
         echo "::set-output name=opt_recurse::$(if [ ! -z ${{inputs.recurse}} ]; then echo -recurse;fi)"
         echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)"
         echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)"
