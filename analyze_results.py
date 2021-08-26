@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import json, sys, yaml
+import json, os, sys, yaml
 import xml.etree.ElementTree as ET
 import xml.parsers.expat
 from optparse import OptionParser, OptionValueError
@@ -50,7 +50,7 @@ class Issue:
 
         if (formatter.is_github):
             severity_command = "warning" if self.severity in ["warning", "information"] else "error"
-            out = f"::{severity_command} file={file_path}"
+            out = f"::{severity_command} file={os.getcwd()}/{file_path}"
             if self.line != "?":
                 out += f",line={self.line}"
                 if self.col != "?":
