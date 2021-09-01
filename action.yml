@@ -26,7 +26,11 @@ inputs:
   ignored-issues:
     description: A YAML file listing issues that should be ignored.
 outputs:
+  was-skipped:
+    description: Indicate whether the check was skipped
+    value: ${{ steps.check_run.outputs.run != 'run' }}
   stats-file:
+    description: The location of the JSON file containing statistics about the check.
     value: ${{ steps.analyze-results.outputs.stats-file }}
 runs:
   using: composite
