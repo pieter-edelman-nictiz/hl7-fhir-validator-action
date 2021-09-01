@@ -25,6 +25,9 @@ inputs:
     default: information
   ignored-issues:
     description: A YAML file listing issues that should be ignored.
+outputs:
+  stats-file:
+    value: ${{ steps.analyze-results.outputs.stats-file }}
 runs:
   using: composite
   steps:
@@ -72,8 +75,11 @@ runs:
           echo "::endgroup::"
         fi
       shell: bash
-    - run: |
+    - id: analyze-results
+      run: |
+        stats_file=$(mktemp --suffix=.json)
+        echo "::set-output name=stats-file::$(echo $stats_file)"
         if [ ${{ steps.check_run.outputs.run }} ]; then
-          python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} --colorize validation.xml
+          python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} --colorize --stats-file=$stats_file validation.xml
         fi
       shell: bash

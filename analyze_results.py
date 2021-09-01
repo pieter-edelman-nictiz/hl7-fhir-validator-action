@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import json, sys, yaml
+import json, os, sys, yaml
 import xml.etree.ElementTree as ET
 import xml.parsers.expat
 from optparse import OptionParser, OptionValueError
@@ -240,6 +240,9 @@ class ResourceIssues:
         if not (self.ignored_issues.hasForExpression(text, expression) or self.ignored_issues.hasForId(text, line, col)):
             self.issues.append(Issue(line, col, severity, text, expression))
 
+    def count(self, issue_severity):
+        return len([issue for issue in self.issues if issue.severity == issue_severity])
+
     def finish(self):
         """ Indicate that the check for the current resource is finished. """
         self.issues += self.ignored_issues.finishSelectedId()
@@ -252,6 +255,8 @@ if __name__ == "__main__":
         help="Only show issues at this level or lower (fatal, error, warning, information).")
     parser.add_option("-c", "--colorize", action = "store_true",
         help="Colorize the output.")
+    parser.add_option("--stats-file", type = "string",
+        help="Write statistics to the following JSON file.")
     parser.add_option("--ignored-issues", type="string",
         help="A YAML file with issues that should be ignored.")
 
@@ -316,6 +321,10 @@ if __name__ == "__main__":
 
     # Print out the results per file
     success = True
+    num_issues = {}
+    for severity in issue_levels.keys():
+        num_issues[severity] = 0
+
     for resource_issues in issues:
         if len(resource_issues.issues) > 0:
             id_str = "== " + resource_issues.file_path
@@ -329,8 +338,21 @@ if __name__ == "__main__":
                     issue.print(formatter)
             id_str += formatter.RESET
             print()
+        for severity in issue_levels.keys():
+            num_issues[severity] += resource_issues.count(severity)
+
+    stats = ""
+    for severity in issue_levels.keys():
+        if num_issues[severity] > 0:
+            stats += f"- {num_issues[severity]} {severity} messages\n"
+    if stats != "":
+        print("+++ Statistics +++")
+        print(stats)
+    if options.stats_file:
+        with open(options.stats_file, "w") as f:
+            json.dump(num_issues, f)
 
     if not success:
-        print(formatter.ERROR + "There were errors during validation" + formatter.RESET)
+        print(formatter.ERROR + "There were errors below your threshold!" + formatter.RESET)
         sys.exit(1)
     print(formatter.OK + "All well" + formatter.RESET)
