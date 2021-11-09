@@ -70,4 +70,4 @@ Additionally, these parameters can be used to control the automation process:
           reason: "[Another explanation]"
   ```
 
-  Where `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs.
+  Where `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs. Asterisk may be used as wildcards on both the resource id and the location.

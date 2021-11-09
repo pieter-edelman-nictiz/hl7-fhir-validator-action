@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import json, os, sys, yaml
+import json, os, re, sys, yaml
 import xml.etree.ElementTree as ET
 import xml.parsers.expat
 from optparse import OptionParser, OptionValueError
@@ -138,29 +138,54 @@ class IgnoredIssues:
 
         if path:
             with open(options.ignored_issues, "r") as f:
-                self.ignored_issues = yaml.safe_load(f)
-            if type(self.ignored_issues) != dict: # Empty file
-                self.ignored_issues = None
+                ignored_issues = yaml.safe_load(f)
+            if type(ignored_issues) == dict: # Check to handle empty files
+                self.ignored_issues = {}
 
+                # The ignored issues are organized similarly to how the YAML file is defined. After processing, it looks
+                # like:
+                # {
+                #     regex for resource id: {
+                #         regex for location: [
+                #             {
+                #                 message: The message being suppressed
+                #                 reason: Reason why the message is suppressed
+                #                 handled: True when the message did actually occur in the output
+                #                 key: The original resource identifier in the YAML file, before it was turned into a regex
+                #             }
+                #         ]
+                #     }
+                # }
+                for resource_id in ignored_issues:
+                    if "ignored issues" in ignored_issues[resource_id]:
+                        ignored_issues_for_resource = {}
+                        for path_id in ignored_issues[resource_id]["ignored issues"]:
+                            issues = []
+                            for issue in ignored_issues[resource_id]["ignored issues"][path_id]:
+                                issue["key"]     = resource_id
+                                issue["handled"] = False
+                                issues.append(issue)
+                            ignored_issues_for_resource[self._wildcardToRegex(path_id)] = issues
+                        self.ignored_issues[self._wildcardToRegex(resource_id)] = ignored_issues_for_resource
+        
     def selectResourceId(self, resource_id, file_type = None):
         """ Select a resource id from the YAML file to work on (if any). """
         self.resource_id         = resource_id
         self.issues_for_resource = {}
         self.element_ids         = []
         self.issues              = []
-        if self.ignored_issues and resource_id in self.ignored_issues:
-            if "ignored issues" in self.ignored_issues[resource_id]:
-                self.issues_for_resource = self.ignored_issues[resource_id]["ignored issues"]
-                if (file_type == "xml"):
-                    self.element_ids = XMLElementIdMapper().parse(file_name)
-                else:
-                    self.element_ids = JSONElementIdMapper().parse(file_name)
+        if self.ignored_issues:
+            for resource_regex in self.ignored_issues:
+                if resource_regex.match(resource_id):
+                    self.issues_for_resource.update(self.ignored_issues[resource_regex])
+                    if (file_type == "xml"):
+                        self.element_ids = XMLElementIdMapper().parse(file_name)
+                    else:
+                        self.element_ids = JSONElementIdMapper().parse(file_name)
 
     def hasForExpression(self, message, expression):
         """ Check if an ignored issues with the given message is defined for the given expression. """
-        if expression in self.issues_for_resource:
-            return self._checkIgnoredIssue(self.issues_for_resource[expression], message, expression)
-        return False
+        return self._checkIgnoredIssue(message, expression)
 
     def hasForId(self, message, line, col):
         """ Check if an ignored issues with the given message is defined for the given element id, as represented by a
@@ -171,39 +196,45 @@ class IgnoredIssues:
             if element_id != False:
                 break 
 
-        if element_id and element_id in self.issues_for_resource:
-            return self._checkIgnoredIssue(self.issues_for_resource[element_id], message, element_id)
+        if element_id:
+            return self._checkIgnoredIssue(message, element_id)
         return False
 
     def finishSelectedId(self):
-        """ Check if all issues have been processed. """
+        """ Check if all issues have been processed. This only takes into account the issues that were defined with a
+            full resource id, without wildcards. """
 
-        for location in self.issues_for_resource:
-            for issue in self.issues_for_resource[location]:
-                if "handled" not in issue or not issue["handled"]:
-                    self.issues.append(Issue("?", "?", "fatal", "An ignored issue was provided, but the issue didn't occur", location))
+        for issues_per_path in self.issues_for_resource.values():
+            for issue in issues_per_path:
+                if not issue["handled"] and issue["key"] == self.resource_id:
+                    self.issues.append(Issue("?", "?", "fatal", "An ignored issue was provided, but the issue didn't occur", issue["key"]))
 
         return self.issues
 
-    def _checkIgnoredIssue(self, ignored_issues, message, location):
+    def _checkIgnoredIssue(self, message, location):
         """ Check if an ignored issues with the given message is defined for the given expression or element id.
             If this is the case, the issue will be marked as "handled". """ 
         result = False
 
-        for ignored_issue in ignored_issues:
-            if "message" in ignored_issue and message.startswith(ignored_issue["message"]):
-                if "reason" not in ignored_issue:
-                    self.issues.append({
-                        "line": "?",
-                        "col": "?",
-                        "severity": "fatal",
-                        "text": "Issue ignored without providing a reason",
-                        "expression": location
-                    })
-                result = True
-                ignored_issue["handled"] = True
+        for regex in self.issues_for_resource.keys():
+            if regex.match(location):
+                for ignored_issue in self.issues_for_resource[regex]:
+                    if "message" in ignored_issue and message.startswith(ignored_issue["message"]):
+                        if "reason" not in ignored_issue:
+                            self.issues.append({
+                                "line": "?",
+                                "col": "?",
+                                "severity": "fatal",
+                                "text": "Issue ignored without providing a reason",
+                                "expression": location
+                            })
+                        result = True
+                        ignored_issue["handled"] = True
 
         return result
+    
+    def _wildcardToRegex(self, wildcard_string):
+        return re.compile("^" + wildcard_string.replace(".", "\.").replace("*", ".*?") + "$", re.MULTILINE)
 
 class ResourceIssues:
     """ Container for all the issues for a single FHIR resource. """
