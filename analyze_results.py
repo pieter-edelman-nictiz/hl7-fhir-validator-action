@@ -131,16 +131,19 @@ class JSONElementIdMapper(json.JSONDecoder):
 class IgnoredIssues:
     """ Handle the ignored issues as defined in a YAML file. """
 
-    def __init__(self, path = None):
+    def __init__(self, path = None, require_occurence = True):
         """ Initialize with a path to the ignored issues YAML file. """
 
         self.ignored_issues = None
-
+        self.load(path, require_occurence)
+    
+    def load(self, path = None, require_occurence = True):
         if path:
-            with open(options.ignored_issues, "r") as f:
+            with open(path, "r") as f:
                 ignored_issues = yaml.safe_load(f)
             if type(ignored_issues) == dict: # Check to handle empty files
-                self.ignored_issues = {}
+                if self.ignored_issues == None:
+                    self.ignored_issues = {}
 
                 # The ignored issues are organized similarly to how the YAML file is defined. After processing, it looks
                 # like:
@@ -158,15 +161,22 @@ class IgnoredIssues:
                 # }
                 for resource_id in ignored_issues:
                     if "ignored issues" in ignored_issues[resource_id]:
-                        ignored_issues_for_resource = {}
+                        if require_occurence and resource_id.find("*") != -1:
+                            print(formatter.ERROR + "Wildcards were used to suppress an error on multiple resources, but this is only allowed for ephemeral errors!" + formatter.RESET)
+                            sys.exit(1)
+
+                        resource_regex = self._wildcardToRegex(resource_id)
+                        issues_for_resource = self.ignored_issues[resource_regex] if resource_regex in self.ignored_issues else {}
+
                         for path_id in ignored_issues[resource_id]["ignored issues"]:
-                            issues = []
+                            path_regex = self._wildcardToRegex(path_id)
+                            issues_for_path = issues_for_resource[path_regex] if path_regex in issues_for_resource else []
                             for issue in ignored_issues[resource_id]["ignored issues"][path_id]:
-                                issue["key"]     = resource_id
-                                issue["handled"] = False
-                                issues.append(issue)
-                            ignored_issues_for_resource[self._wildcardToRegex(path_id)] = issues
-                        self.ignored_issues[self._wildcardToRegex(resource_id)] = ignored_issues_for_resource
+                                issue["handled"]           = False
+                                issue["require_occurence"] = require_occurence
+                                issues_for_path.append(issue)
+                            issues_for_resource[path_regex] = issues_for_path
+                        self.ignored_issues[resource_regex] = issues_for_resource
         
     def selectResourceId(self, resource_id, file_type = None):
         """ Select a resource id from the YAML file to work on (if any). """
@@ -206,9 +216,9 @@ class IgnoredIssues:
 
         for issues_per_path in self.issues_for_resource.values():
             for issue in issues_per_path:
-                if not issue["handled"] and issue["key"] == self.resource_id:
-                    self.issues.append(Issue("?", "?", "fatal", "An ignored issue was provided, but the issue didn't occur", issue["key"]))
-
+                if not issue["handled"] and issue["require_occurence"]:
+                    self.issues.append(Issue("?", "?", "fatal", "An ignored issue was provided, but the issue didn't occur", self.resource_id))
+        
         return self.issues
 
     def _checkIgnoredIssue(self, message, location):
@@ -234,7 +244,7 @@ class IgnoredIssues:
         return result
     
     def _wildcardToRegex(self, wildcard_string):
-        return re.compile("^" + wildcard_string.replace(".", "\.").replace("*", ".*?") + "$", re.MULTILINE)
+        return re.compile("^" + wildcard_string.replace(".", "\.").replace("*", ".*?").replace("[", "\]").replace("]", "\]") + "$", re.MULTILINE)
 
 class ResourceIssues:
     """ Container for all the issues for a single FHIR resource. """
@@ -289,7 +299,9 @@ if __name__ == "__main__":
     parser.add_option("--stats-file", type = "string",
         help="Write statistics to the following JSON file.")
     parser.add_option("--ignored-issues", type="string",
-        help="A YAML file with issues that should be ignored.")
+        help="A YAML file with issues that should be ignored. Issues defined here should actually be encountered.")
+    parser.add_option("--ephemeral-issues", type="string",
+        help="A YAML file with issues that should be ignored. Issues defined here don't need to actually occur and wildcards are allowed on the resource id's.")
 
     (options, args) = parser.parse_args()
     if len(args) != 1:
@@ -305,7 +317,8 @@ if __name__ == "__main__":
     else:
         formatter = Formatter()
 
-    ignored_issues = IgnoredIssues(options.ignored_issues)
+    ignored_issues = IgnoredIssues(options.ignored_issues, True)
+    ignored_issues.load(options.ephemeral_issues, False)
 
     tree = ET.parse(args[0])
     ns = {"f": "http://hl7.org/fhir"}
