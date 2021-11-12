@@ -131,19 +131,25 @@ class JSONElementIdMapper(json.JSONDecoder):
 class IgnoredIssues:
     """ Handle the ignored issues as defined in a YAML file. """
 
-    def __init__(self, path = None, require_occurence = True):
+    def __init__(self, path = None):
         """ Initialize with a path to the ignored issues YAML file. """
 
         self.ignored_issues = None
-        self.load(path, require_occurence)
+        self.load(path)
     
-    def load(self, path = None, require_occurence = True):
+    def load(self, path = None):
         if path:
             with open(path, "r") as f:
                 ignored_issues = yaml.safe_load(f)
             if type(ignored_issues) == dict: # Check to handle empty files
                 if self.ignored_issues == None:
                     self.ignored_issues = {}
+
+                require_occurence = True
+                if "issues should occur" in ignored_issues:
+                    if not ignored_issues["issues should occur"]:
+                        require_occurence = False
+                    ignored_issues.pop("issues should occur")
 
                 # The ignored issues are organized similarly to how the YAML file is defined. After processing, it looks
                 # like:
@@ -298,10 +304,8 @@ if __name__ == "__main__":
         help="Colorize the output.")
     parser.add_option("--stats-file", type = "string",
         help="Write statistics to the following JSON file.")
-    parser.add_option("--ignored-issues", type="string",
+    parser.add_option("--ignored-issues", type="string", action = "append",
         help="A YAML file with issues that should be ignored. Issues defined here should actually be encountered.")
-    parser.add_option("--ephemeral-issues", type="string",
-        help="A YAML file with issues that should be ignored. Issues defined here don't need to actually occur and wildcards are allowed on the resource id's.")
 
     (options, args) = parser.parse_args()
     if len(args) != 1:
@@ -317,8 +321,9 @@ if __name__ == "__main__":
     else:
         formatter = Formatter()
 
-    ignored_issues = IgnoredIssues(options.ignored_issues, True)
-    ignored_issues.load(options.ephemeral_issues, False)
+    ignored_issues = IgnoredIssues()
+    for ignored_issues_file in options.ignored_issues:
+        ignored_issues.load(ignored_issues_file)
 
     tree = ET.parse(args[0])
     ns = {"f": "http://hl7.org/fhir"}

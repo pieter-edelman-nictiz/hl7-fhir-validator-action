@@ -58,7 +58,11 @@ Additionally, these parameters can be used to control the automation process:
 
 * fail-at: The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this action will fail.
 * verbosity-level: Only show issues at this level or more severe (error, warning or information).
-* ignored-issues: An optional YAML file with issues to ignore. It is mandatory to provide a reason for each ignored issue. The file should be formatted like:
+* ignored-issues: An optional YAML file with issues to ignore. See below for more information.
+
+## Suppressing messages
+
+Using the "ignored issues" key, it is possible to pass one or more YAML files that describe issues that should be suppressed. The file should be formatted in the following way:
   
   ```yaml
   [resource.id]:
@@ -70,4 +74,10 @@ Additionally, these parameters can be used to control the automation process:
           reason: "[Another explanation]"
   ```
 
-  Where `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs. Asterisk may be used as wildcards on both the resource id and the location.
+Where `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs. Asterisk may be used as wildcards on the location.
+  
+The "reason" key is mandatory.
+
+By default, it is required that each of the described issues actually occurs during validation (only for the resources actually being validated of course). If not, an error is generated. This behavior can be suppressed by including the key `issues should occur` set to _false_ in the YAML file. Only in this situation, wildcards can be used on the resource.id as well.
+
+The rationale for this is that you can document different kinds of errors in different files; for example one file for all issues that are the result of design choices, and another file to suppress more ephemeral errors, like a terminlogy server not supporting certain code systems.
