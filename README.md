@@ -78,6 +78,6 @@ Where `[location]` may be either the FHIRPath expression _as reported by the Val
   
 The "reason" key is mandatory.
 
-By default, it is required that each of the described issues actually occurs during validation (only for the resources actually being validated of course). If not, an error is generated. This behavior can be suppressed by including the key `issues should occur` set to _false_ in the YAML file. Only in this situation, wildcards can be used on the resource.id as well.
+By default, it is required that each of the described issues actually occurs during validation (only for the resources actually being validated, that is). If not, an error is generated. This behavior can be suppressed by including the key `issues should occur` set to _false_ in the YAML file (or the document when it is a multi-document YAML file). Only in this situation, wildcards can be used on the resource.id as well.
 
 The rationale for this is that you can document different kinds of errors in different files; for example one file for all issues that are the result of design choices, and another file to suppress more ephemeral errors, like a terminlogy server not supporting certain code systems.
