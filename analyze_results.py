@@ -139,9 +139,7 @@ class IgnoredIssues:
     
     def load(self, path = None):
         if path:
-            with open(path, "r") as f:
-                ignored_issues = yaml.safe_load(f)
-            if type(ignored_issues) == dict: # Check to handle empty files
+            for ignored_issues in yaml.safe_load_all(open(path)):
                 if self.ignored_issues == None:
                     self.ignored_issues = {}
 
@@ -168,7 +166,7 @@ class IgnoredIssues:
                 for resource_id in ignored_issues:
                     if "ignored issues" in ignored_issues[resource_id]:
                         if require_occurence and resource_id.find("*") != -1:
-                            print(formatter.ERROR + "Wildcards were used to suppress an error on multiple resources, but this is only allowed for ephemeral errors!" + formatter.RESET)
+                            print(formatter.ERROR + "Wildcards were used to suppress an error on multiple resources, but this is only allowed for errors that aren't required to occur!" + formatter.RESET)
                             sys.exit(1)
 
                         resource_regex = self._wildcardToRegex(resource_id)
