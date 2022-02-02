@@ -75,17 +75,20 @@ runs:
     - run: |
         if [ ${{ steps.check_run.outputs.run }} ]; then
           echo "::group::Run the validator"
-          java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output validation.xml ${{ inputs.source }} | cat
+          out_file=$(mktemp --suffix=.xml)
+          echo "::set-output name=out-file::$(echo $out_file)"
+          java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output $out_file ${{ inputs.source }} | cat
           echo "::endgroup::"
         fi
+      id: run_validator
       shell: bash --noprofile --norc {0}
     - id: analyze-results
       run: |
         stats_file=$(mktemp --suffix=.json)
         echo "::set-output name=stats-file::$(echo $stats_file)"
         if [ ${{ steps.check_run.outputs.run }} ]; then
-          if [[ -f validation.xml ]]; then
-            python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} --colorize --stats-file=$stats_file validation.xml
+          if [[ -f ${{ steps.run_validator.outputs.out-file }} ]]; then
+            python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} --colorize --stats-file=$stats_file ${{ steps.run_validator.outputs.out-file }}
           else
             echo "::error::The HL7 Validator didn't produce any output!"
             echo "{}" >> $stats_file
