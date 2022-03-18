@@ -188,7 +188,7 @@ class IgnoredIssues:
         self.issues_for_resource = {}
         self.element_ids         = []
         self.issues              = []
-        if self.ignored_issues:
+        if self.ignored_issues and resource_id is not None:
             for resource_regex in self.ignored_issues:
                 if resource_regex.match(resource_id):
                     self.issues_for_resource.update(self.ignored_issues[resource_regex])
@@ -261,21 +261,28 @@ class ResourceIssues:
 
         self.file_path = file_path
 
+        file_type = None
+        if file_path.lower().endswith(".xml"):
+            file_type = "xml"
+        elif file_path.lower().endswith(".json"):
+            file_type = "json"
+
         # Get the id of the resource, if any
-        if file_path.endswith(".xml"):
+        self.id = None
+        if file_type == "xml":
             resource_tree = ET.parse(file_path)
             try:
                 self.id = resource_tree.find(".//f:id", ns).attrib["value"]
             except AttributeError:
                 self.id = None
-        elif file_path.endswith(".json"):
+        elif file_type == "json":
             resource_tree = json.load(open(file_path))
             if "id" in resource_tree:
                 self.id = resource_tree["id"]
 
         self.issues = []
         self.ignored_issues = ignored_issues
-        self.ignored_issues.selectResourceId(self.id, "xml" if file_path.endswith(".xml") else "json")
+        self.ignored_issues.selectResourceId(self.id, file_type)
 
     def addIssue(self, line, col, severity, text, expression):
         """ Add the issue with the specified characteristics, unless it is listed in the ignored_issues. """
