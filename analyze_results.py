@@ -327,8 +327,9 @@ if __name__ == "__main__":
         formatter = Formatter()
 
     ignored_issues = IgnoredIssues()
-    for ignored_issues_file in options.ignored_issues:
-        ignored_issues.load(ignored_issues_file)
+    if options.ignored_issues is not None:
+        for ignored_issues_file in options.ignored_issues:
+            ignored_issues.load(ignored_issues_file)
 
     tree = ET.parse(args[0])
     ns = {"f": "http://hl7.org/fhir"}
