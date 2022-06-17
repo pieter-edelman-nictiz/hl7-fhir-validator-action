@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json, os, re, sys, yaml
+from nis import match
 import xml.etree.ElementTree as ET
 import xml.parsers.expat
 from optparse import OptionParser, OptionValueError
@@ -182,15 +183,23 @@ class IgnoredIssues:
                             issues_for_resource[path_regex] = issues_for_path
                         self.ignored_issues[resource_regex] = issues_for_resource
         
-    def selectResourceId(self, resource_id, file_type = None):
+    def selectResourceId(self, resource_id, file_path, file_type = None):
         """ Select a resource id from the YAML file to work on (if any). """
         self.resource_id         = resource_id
         self.issues_for_resource = {}
         self.element_ids         = []
         self.issues              = []
-        if self.ignored_issues and resource_id is not None:
+
+        #toMatch = resource_id if resource_id is not None else file_path
+        if self.ignored_issues:
             for resource_regex in self.ignored_issues:
-                if resource_regex.match(resource_id):
+                matchResult = False
+                if resource_id is not None:
+                    matchResult = resource_regex.match(resource_id) or resource_regex.match(file_path) 
+                else:
+                    matchResult = resource_regex.match(file_path)
+
+                if matchResult:
                     self.issues_for_resource.update(self.ignored_issues[resource_regex])
                     if (file_type == "xml"):
                         self.element_ids = XMLElementIdMapper().parse(file_name)
@@ -282,7 +291,7 @@ class ResourceIssues:
 
         self.issues = []
         self.ignored_issues = ignored_issues
-        self.ignored_issues.selectResourceId(self.id, file_type)
+        self.ignored_issues.selectResourceId(self.id, file_path, file_type)
 
     def addIssue(self, line, col, severity, text, expression):
         """ Add the issue with the specified characteristics, unless it is listed in the ignored_issues. """
