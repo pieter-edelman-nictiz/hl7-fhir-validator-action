@@ -189,8 +189,7 @@ class IgnoredIssues:
         self.issues_for_resource = {}
         self.element_ids         = []
         self.issues              = []
-
-        #toMatch = resource_id if resource_id is not None else file_path
+        
         if self.ignored_issues:
             for resource_regex in self.ignored_issues:
                 matchResult = False
