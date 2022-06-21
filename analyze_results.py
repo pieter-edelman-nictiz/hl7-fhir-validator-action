@@ -182,8 +182,8 @@ class IgnoredIssues:
                             issues_for_resource[path_regex] = issues_for_path
                         self.ignored_issues[resource_regex] = issues_for_resource
         
-    def selectResourceId(self, resource_id, file_path, file_type = None):
-        """ Select a resource id from the YAML file to work on (if any). """
+    def selectResource(self, resource_id, file_path, file_type = None):
+        """ Select a resource by id or file name from the YAML file to work on (if any). """
         self.resource_id         = resource_id
         self.issues_for_resource = {}
         self.element_ids         = []
@@ -289,7 +289,7 @@ class ResourceIssues:
 
         self.issues = []
         self.ignored_issues = ignored_issues
-        self.ignored_issues.selectResourceId(self.id, file_path, file_type)
+        self.ignored_issues.selectResource(self.id, file_path, file_type)
 
     def addIssue(self, line, col, severity, text, expression):
         """ Add the issue with the specified characteristics, unless it is listed in the ignored_issues. """
