@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json, os, re, sys, yaml
-from nis import match
 import xml.etree.ElementTree as ET
 import xml.parsers.expat
 from optparse import OptionParser, OptionValueError
