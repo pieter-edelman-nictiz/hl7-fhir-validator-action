@@ -65,7 +65,7 @@ Additionally, these parameters can be used to control the automation process:
 Using the "ignored issues" key, it is possible to pass one or more YAML files that describe issues that should be suppressed. The file should be formatted in the following way:
   
   ```yaml
-  [resource.id]:
+  [resource]:
     ignored issues:
       [location]:
         - message: "[The error message (may be just the first part)]"
@@ -74,8 +74,10 @@ Using the "ignored issues" key, it is possible to pass one or more YAML files th
           reason: "[Another explanation]"
   ```
 
-Where `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs. Asterisk may be used as wildcards on the location.
-  
+Where:
+* `[resource]` may either be the `Resource.id` or the relative path to the file.
+* `[location]` may be either the FHIRPath expression _as reported by the Validator_ or the id of the element where the issue occurs. Asterisk may be used as wildcards on the location.
+
 The "reason" key is mandatory.
 
 By default, it is required that each of the described issues actually occurs during validation (only for the resources actually being validated, that is). If not, an error is generated. This behavior can be suppressed by including the key `issues should occur` set to _false_ in the YAML file (or the document when it is a multi-document YAML file). Only in this situation, wildcards can be used on the resource.id as well.
