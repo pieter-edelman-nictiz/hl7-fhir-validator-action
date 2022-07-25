@@ -255,7 +255,7 @@ class IgnoredIssues:
         return result
     
     def _wildcardToRegex(self, wildcard_string):
-        return re.compile("^" + wildcard_string.replace(".", "\.").replace("*", ".*?").replace("[", "\[").replace("]", "\]") + "$", re.MULTILINE)
+        return re.compile("^" + wildcard_string.replace(".", "\.").replace("*", ".*?").replace("[", "\[").replace("]", "\]").replace("(", "\(").replace(")", "\)") + "$", re.MULTILINE)
 
 class ResourceIssues:
     """ Container for all the issues for a single FHIR resource. """
