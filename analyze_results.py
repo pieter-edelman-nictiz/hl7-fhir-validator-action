@@ -277,15 +277,18 @@ class ResourceIssues:
         # Get the id of the resource, if any
         self.id = None
         if file_type == "xml":
-            resource_tree = ET.parse(file_path)
             try:
+                resource_tree = ET.parse(file_path)
                 self.id = resource_tree.find(".//f:id", ns).attrib["value"]
-            except AttributeError:
-                self.id = None
+            except:
+                pass    # In case of not parseable the error is already in the validation output file
         elif file_type == "json":
-            resource_tree = json.load(open(file_path))
-            if "id" in resource_tree:
-                self.id = resource_tree["id"]
+            try:
+                resource_tree = json.load(open(file_path))
+                if "id" in resource_tree:
+                    self.id = resource_tree["id"]
+            except:
+                pass    # In case of not parseable the error is already in the validation output file
 
         self.issues = []
         self.ignored_issues = ignored_issues
