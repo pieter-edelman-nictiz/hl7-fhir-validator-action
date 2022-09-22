@@ -48,7 +48,7 @@ This action supports a subset of the FHIR Validator parameters. Their usage is e
 
 * **source**: a file, url, directory or pattern for resources to validate. This is the only required parameter.
 * version: The FHIR version to use.
-* ig: An IG or profile definition to load.
+* ig: An IG or profile definition to load. You can specify multiple IGs by separating them with a space.
 * recurse: Look in subfolders when "ig" refers to a folder.
 * tx: The [base] url of a FHIR terminology server.
 * profile: the canonical URL to validate against.
