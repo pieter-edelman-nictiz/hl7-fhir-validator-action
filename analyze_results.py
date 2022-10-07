@@ -285,7 +285,7 @@ class ResourceIssues:
                 if "id" in resource_tree:
                     self.id = resource_tree["id"]
         except:
-            pass    # In case of file not parseable, the error will be in the validation output file
+            self.id = None
 
         self.issues = []
         self.ignored_issues = ignored_issues
