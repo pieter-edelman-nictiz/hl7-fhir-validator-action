@@ -14,6 +14,10 @@ issue_levels = {
 
 class Formatter:
     """ Default provider for formatting characters """
+
+    def __init__(self, is_github = False):
+        self.is_github = is_github
+
     def __getattr__(self, value):
         return ""
 
@@ -33,7 +37,7 @@ class Issue:
         self.text       = text
         self.expression = expression
     
-    def print(self, formatter):
+    def print(self, formatter, file_path):
         if self.severity in ["fatal", "error"]:
             color = formatter.ERROR
         elif self.severity == "warning":
@@ -42,6 +46,16 @@ class Issue:
             color = formatter.INFORMATION
         out =  f"  -  {color}{self.severity}{formatter.RESET} at {self.expression} ({self.line}, {self.col}):\n"
         out += f"     {self.text}"
+        print(out)
+
+        if (formatter.is_github):
+            severity_command = "warning" if self.severity in ["warning", "information"] else "error"
+            out = f"::{severity_command} file={os.getcwd()}/{file_path}"
+            if self.line != "?":
+                out += f",line={self.line}"
+                if self.col != "?":
+                    out += f",col={self.col}"
+            out += f"::{self.text}"
         print(out)
 
 class ElementId:
@@ -316,6 +330,8 @@ if __name__ == "__main__":
         help="Colorize the output.")
     parser.add_option("--stats-file", type = "string",
         help="Write statistics to the following JSON file.")
+    parser.add_option("--github", action = "store_true",
+        help="Output Github formatting marks.")
     parser.add_option("--ignored-issues", type="string", action = "append",
         help="A YAML file with issues that should be ignored. Issues defined here should actually be encountered.")
 
@@ -329,9 +345,9 @@ if __name__ == "__main__":
         parser.error("Chosen verbosity level would silence fatal issues")   
 
     if options.colorize:
-        formatter = ColorFormatter()
+        formatter = ColorFormatter(options.github)
     else:
-        formatter = Formatter()
+        formatter = Formatter(options.github)
 
     ignored_issues = IgnoredIssues()
     if options.ignored_issues is not None:
@@ -397,7 +413,7 @@ if __name__ == "__main__":
                 if issue_levels[issue.severity] <= fail_level:
                     success = False
                 if issue_levels[issue.severity] <= verbosity_level:
-                    issue.print(formatter)
+                    issue.print(formatter, resource_issues.file_path)
             id_str += formatter.RESET
             print()
         for severity in issue_levels.keys():
