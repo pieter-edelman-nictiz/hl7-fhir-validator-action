@@ -36,7 +36,7 @@ class Issue:
         self.severity   = severity
         self.text       = text
         self.expression = expression
-    
+
     def print(self, formatter, file_path):
         if self.severity in ["fatal", "error"]:
             color = formatter.ERROR
@@ -230,6 +230,12 @@ class IgnoredIssues:
             element_id = element.has(line, col)
             if element_id != False:
                 break 
+        
+        # When the Validator doesn't report the location of the error (line and col are "?"), we assume the id to be
+        # the profile root. Note that the root Element is often not present in a StructureDefinition, so we have to
+        # extract it from the id of the first element.
+        if not element_id and (line == "?" or col == "?") and len(self.element_ids) > 0:
+            element_id = self.element_ids[0].id.split(".")[0]
 
         if element_id:
             return self._checkIgnoredIssue(message, element_id)
