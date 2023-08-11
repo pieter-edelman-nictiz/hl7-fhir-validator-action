@@ -38,23 +38,28 @@ class Issue:
         self.expression = expression
 
     def print(self, formatter, file_path):
-        if self.severity in ["fatal", "error"]:
-            color = formatter.ERROR
-        elif self.severity == "warning":
-            color = formatter.WARNING
-        else:
-            color = formatter.INFORMATION
-        out =  f"  -  {color}{self.severity}{formatter.RESET} at {self.expression} ({self.line}, {self.col}):\n"
-        out += f"     {self.text}"
-
-        if (formatter.is_github):
-            severity_command = "warning" if self.severity in ["warning", "information"] else "error"
-            out += f"\n::{severity_command} file={os.getcwd()}/{file_path}"
+        if formatter.is_github:
+            if self.severity == "information":
+                severity_command = "notice"
+            elif self.severity == "warning":
+                severity_command = "warning"
+            else:
+                severity_command = "error"
+            out = f"::{severity_command} file={os.getcwd()}/{file_path}"
             if self.line != "?":
                 out += f",line={self.line}"
                 if self.col != "?":
                     out += f",col={self.col}"
-            out += f"::{self.text}"
+            out += f"::{self.text} (at {self.expression})"
+        else:
+            if self.severity in ["fatal", "error"]:
+                color = formatter.ERROR
+            elif self.severity == "warning":
+                color = formatter.WARNING
+            else:
+                color = formatter.INFORMATION
+            out =  f"  -  {color}{self.severity}{formatter.RESET} at {self.expression} ({self.line}, {self.col}):\n"
+            out += f"     {self.text}"
 
         print(out)
 
