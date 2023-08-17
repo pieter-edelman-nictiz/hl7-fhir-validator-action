@@ -322,7 +322,8 @@ class ResourceIssues:
             raise Exception(f"Unknown severity '{severity}' when validating file {self.file_path}")
 
         if not (self.ignored_issues.hasForExpression(text, expression) or self.ignored_issues.hasForId(text, line, col)):
-            self.issues.append(Issue(line, col, severity, text, expression))
+            if issue_levels[severity] <= verbosity_level:
+                self.issues.append(Issue(line, col, severity, text, expression))
 
     def count(self, issue_severity):
         return len([issue for issue in self.issues if issue.severity == issue_severity])
@@ -423,12 +424,12 @@ if __name__ == "__main__":
             for issue in resource_issues.issues:
                 if issue_levels[issue.severity] <= fail_level:
                     success = False
-                if issue_levels[issue.severity] <= verbosity_level:
-                    issue.print(formatter, resource_issues.file_path)
+                issue.print(formatter, resource_issues.file_path)
             id_str += formatter.RESET
             print()
         for severity in issue_levels.keys():
-            num_issues[severity] += resource_issues.count(severity)
+            if issue_levels[severity] <= verbosity_level:
+                num_issues[severity] += resource_issues.count(severity)
 
     stats = ""
     for severity in issue_levels.keys():
