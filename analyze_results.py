@@ -207,7 +207,7 @@ class IgnoredIssues:
         self.issues_for_resource = {}
         self.element_ids         = []
         self.issues              = []
-        
+
         if self.ignored_issues:
             for resource_regex in self.ignored_issues:
                 matchResult = False
@@ -217,7 +217,11 @@ class IgnoredIssues:
                     matchResult = resource_regex.match(file_path)
 
                 if matchResult:
-                    self.issues_for_resource.update(self.ignored_issues[resource_regex])
+                    for type_regex in self.ignored_issues[resource_regex]:
+                        if type_regex in self.issues_for_resource:
+                            self.issues_for_resource[type_regex] += self.ignored_issues[resource_regex][type_regex]
+                        else:
+                            self.issues_for_resource[type_regex] = self.ignored_issues[resource_regex][type_regex]
                     if (file_type == "xml"):
                         self.element_ids = XMLElementIdMapper().parse(file_name)
                     else:
@@ -254,7 +258,7 @@ class IgnoredIssues:
             for issue in issues_per_path:
                 if not issue["handled"] and issue["require_occurence"]:
                     self.issues.append(Issue("?", "?", "fatal", "An ignored issue was provided, but the issue didn't occur", self.resource_id))
-        
+
         return self.issues
 
     def _checkIgnoredIssue(self, message, location):
