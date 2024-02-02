@@ -342,6 +342,8 @@ if __name__ == "__main__":
         help="The level at which issues are considered fatal (error, warning or information). If issues at this level or more grave occur, this script will exit with a non-zero status.")
     parser.add_option("-v", "--verbosity-level", type = "choice", choices = ["error", "warning", "information"], default = "information",
         help="Only show issues at this level or lower (fatal, error, warning, information).")
+    parser.add_option("--suppress-display-issues", action="store_true",
+        help = "Suppress all reported issues about incorrect terminology displays")
     parser.add_option("-c", "--colorize", action = "store_true",
         help="Colorize the output.")
     parser.add_option("--stats-file", type = "string",
@@ -407,7 +409,11 @@ if __name__ == "__main__":
             except AttributeError:
                 expression = ""
 
-            if not (severity == "information" and text == "All OK" and len(outcome.findall("f:issue", ns)) == 1): # When everything is ok, the Validator will output an "All OK" issue which we should ignore.
+            if severity == "information" and text == "All OK" and len(outcome.findall("f:issue", ns)) == 1:
+                pass # When everything is ok, the Validator will output an "All OK" issue which we should ignore.
+            elif text.startswith("Wrong Display Name") and options.suppress_display_issues:
+                pass # Suppress display related issues
+            else:
                 resource_issues.addIssue(line, col, severity, text, expression)
 
         resource_issues.finish()
