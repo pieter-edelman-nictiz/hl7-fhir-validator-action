@@ -49,10 +49,10 @@ runs:
           fi
         done
         if $do_run; then
-          echo "::set-output name=run::run"
+          echo "run=run" >> $GITHUB_OUTPUT
         else
           echo "No input, skipping"
-          echo "::set-output name=run::"
+          echo "run=" >> $GITHUB_OUTPUT
         fi
       id: check_run
       shell: bash
@@ -69,21 +69,21 @@ runs:
         fi
       shell: bash
     - run: |
-        echo "::set-output name=opt_version::$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)"
-        echo "::set-output name=opt_ig::$(for ig in ${{inputs.ig}}; do echo -n "-ig $ig ";done)"
-        echo "::set-output name=opt_recurse::$(if [ ! -z ${{inputs.recurse}} ]; then echo -recurse;fi)"
-        echo "::set-output name=opt_tx::$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)"
-        echo "::set-output name=opt_profile::$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)"
-        echo "::set-output name=opt_language::$(if [ ! -z ${{inputs.language}} ]; then echo -language ${{ inputs.language }};fi)"
-        echo "::set-output name=opt_ignored_issues::$(if [ ! -z ${{inputs.ignored-issues}} ]; then echo --ignored-issues=${{ inputs.ignored-issues }};fi)"
-        echo "::set-output name=opt_suppress_display_issues::$(if [ ! -z ${{inputs.suppress-display-issues}} ]; then echo --suppress-display-issues;fi)"
+        echo "opt_version=$(if [ ! -z ${{inputs.version}} ]; then echo -version ${{ inputs.version }};fi)" >> $GITHUB_OUTPUT
+        echo "opt_ig=$(for ig in ${{inputs.ig}}; do echo -n "-ig $ig ";done)" >> $GITHUB_OUTPUT
+        echo "opt_recurse=$(if [ ! -z ${{inputs.recurse}} ]; then echo -recurse;fi)" >> $GITHUB_OUTPUT
+        echo "opt_tx=$(if [ ! -z ${{inputs.tx}} ]; then echo -tx ${{ inputs.tx }};fi)" >> $GITHUB_OUTPUT
+        echo "opt_profile=$(if [ ! -z ${{inputs.profile}} ]; then echo -profile ${{ inputs.profile }};fi)" >> $GITHUB_OUTPUT
+        echo "opt_language=$(if [ ! -z ${{inputs.language}} ]; then echo -language ${{ inputs.language }};fi)" >> $GITHUB_OUTPUT
+        echo "opt_ignored_issues=$(if [ ! -z ${{inputs.ignored-issues}} ]; then echo --ignored-issues=${{ inputs.ignored-issues }};fi)" >> $GITHUB_OUTPUT
+        echo "opt_suppress_display_issues=$(if [ ! -z ${{inputs.suppress-display-issues}} ]; then echo --suppress-display-issues;fi)" >> $GITHUB_OUTPUT
       id: set_options
       shell: bash
     - run: |
         if [ ${{ steps.check_run.outputs.run }} ]; then
           echo "::group::Run the validator"
           out_file=$(mktemp --suffix=.xml)
-          echo "::set-output name=out-file::$(echo $out_file)"
+          echo "out-file=$out_file" >> $GITHUB_OUTPUT
           java -jar ~/validator/validator_cli.jar ${{ steps.set_options.outputs.opt_version }} ${{ steps.set_options.outputs.opt_ig }} ${{ steps.set_options.outputs.opt_recurse }} ${{ steps.set_options.outputs.opt_tx }} ${{ steps.set_options.outputs.opt_profile }} ${{ steps.set_options.outputs.opt_language }} -output $out_file ${{ inputs.source }} | cat
           echo "::endgroup::"
         fi
@@ -92,7 +92,7 @@ runs:
     - id: analyze-results
       run: |
         stats_file=$(mktemp --suffix=.json)
-        echo "::set-output name=stats-file::$(echo $stats_file)"
+        echo "stats-file=$stats_file" >> $GITHUB_OUTPUT
         if [ ${{ steps.check_run.outputs.run }} ]; then
           if [[ -f ${{ steps.run_validator.outputs.out-file }} ]]; then
             python3 ${{ github.action_path }}/analyze_results.py -a ${{ inputs.fail-at }} -v ${{ inputs.verbosity-level }} ${{ steps.set_options.outputs.opt_ignored_issues }} {{ steps.set_options.outputs.opt_suppress_display_issues }} --colorize --github --stats-file=$stats_file ${{ steps.run_validator.outputs.out-file }}
