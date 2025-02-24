@@ -28,6 +28,9 @@ inputs:
     default: "false"
   suppress-display-issues:
     description: Suppress all reported issues about incorrect terminology displays.
+  validator-version:
+    description: The version of the HL7 Validator to use.
+    default: "latest"
 outputs:
   was-skipped:
     description: Indicate whether the check was skipped
@@ -58,7 +61,7 @@ runs:
           echo "::group::Echo getting the validator"
           if [ ! -f ~/validator/validator_cli.jar ]; then
             mkdir -p ~/validator
-            wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+            wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/${{inputs.validator-version}}/download/validator_cli.jar
           else
             echo "Validator already present"
           fi

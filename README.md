@@ -53,6 +53,7 @@ This action supports a subset of the FHIR Validator parameters. Their usage is e
 * tx: The [base] url of a FHIR terminology server.
 * profile: the canonical URL to validate against.
 * language: The language to use when validating coding displays - same value as for xml:lang.
+* validator-version: The version of the HL7 Validator to use. If not specified, the latest version is used.
 
 Additionally, these parameters can be used to control the automation process:
 
