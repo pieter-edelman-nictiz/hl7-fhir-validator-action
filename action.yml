@@ -25,7 +25,6 @@ inputs:
     default: information
   ignored-issues:
     description: A YAML file listing issues that should be ignored.
-    default: "false"
   suppress-display-issues:
     description: Suppress all reported issues about incorrect terminology displays.
   validator-version:
