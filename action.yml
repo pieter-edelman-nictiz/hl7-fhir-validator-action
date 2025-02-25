@@ -60,7 +60,7 @@ runs:
           echo "::group::Echo getting the validator"
           if [ ! -f ~/validator/validator_cli.jar ]; then
             mkdir -p ~/validator
-            wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/${{inputs.validator-version}}/download/validator_cli.jar
+            wget -nv -O ~/validator/validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/download/${{inputs.validator-version}}/validator_cli.jar
           else
             echo "Validator already present"
           fi
